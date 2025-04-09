@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useDrag } from 'react-dnd';
 import { GripVertical, Trash2, Copy } from 'lucide-react';

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DndProvider } from 'react-dnd';
@@ -34,9 +33,7 @@ const ProjectEditor: React.FC = () => {
 
   useEffect(() => {
     if (projectId) {
-      // In a real app, we would fetch project data from an API
       setProjectName(projectId);
-      // Mock data
       setQuestions([
         {
           id: '1',
@@ -58,7 +55,6 @@ const ProjectEditor: React.FC = () => {
   const handleSaveProject = async () => {
     setIsSaving(true);
     try {
-      // In a real app, we would save data to an API
       await new Promise(resolve => setTimeout(resolve, 1000));
       toast.success('项目已保存');
     } catch (error) {
@@ -95,7 +91,6 @@ const ProjectEditor: React.FC = () => {
   };
 
   const handleCreateShareLink = () => {
-    // In a real app, this would generate a unique link
     const shareLink = `https://survey.example.com/${projectId}`;
     navigator.clipboard.writeText(shareLink);
     toast.success('分享链接已复制到剪贴板');
@@ -115,7 +110,6 @@ const ProjectEditor: React.FC = () => {
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="min-h-screen bg-gray-50 flex flex-col">
-        {/* Header */}
         <header className="bg-gray-900 text-white px-4 py-2 flex items-center justify-between">
           <div className="flex items-center">
             <Button 
@@ -161,7 +155,6 @@ const ProjectEditor: React.FC = () => {
           </div>
         </header>
 
-        {/* Tabs */}
         <div className="bg-white border-b">
           <div className="container mx-auto">
             <Tabs 
@@ -206,9 +199,7 @@ const ProjectEditor: React.FC = () => {
           </div>
         </div>
 
-        {/* Main Content */}
         <div className="flex flex-1">
-          {/* Questions Panel */}
           {showQuestionsPanel && (
             <div className="w-64 bg-white border-r p-4 overflow-y-auto">
               <div className="mb-4">
@@ -239,7 +230,6 @@ const ProjectEditor: React.FC = () => {
             </div>
           )}
 
-          {/* Editor Area */}
           <div className="flex-1 p-6 overflow-y-auto">
             <div className="max-w-4xl mx-auto">
               <Button
@@ -252,7 +242,6 @@ const ProjectEditor: React.FC = () => {
                 {showQuestionsPanel ? '隐藏问题面板' : '显示问题面板'}
               </Button>
 
-              {/* Survey Title */}
               <div className="mb-6">
                 <Input
                   className="text-2xl font-semibold border-none bg-transparent focus-visible:ring-0 px-0"
@@ -266,7 +255,6 @@ const ProjectEditor: React.FC = () => {
                 />
               </div>
 
-              {/* Questions */}
               <div className="space-y-4">
                 {questions.map((question) => (
                   <QuestionEditor
@@ -278,7 +266,6 @@ const ProjectEditor: React.FC = () => {
                 ))}
               </div>
 
-              {/* Add Question Button */}
               <Button
                 onClick={() => handleAddQuestion('single')}
                 className="mt-6"
