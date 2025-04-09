@@ -1,35 +1,35 @@
+
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { 
-  Save, Plus, X, ArrowLeft, Eye, Share2, Settings, 
-  BarChart, Menu, Download, Trash2, Grid, List, Radio, 
-  CheckSquare, MessageSquare, Star, SortAsc, PenLine, Hash
+  Save, Plus, ArrowLeft, Share2, Settings, Menu, Grid, 
+  Radio, CheckSquare, Star, SortAsc, PenLine, Hash, Eye
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { 
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
+  Tooltip, 
+  TooltipContent, 
+  TooltipProvider, 
+  TooltipTrigger 
 } from "@/components/ui/tooltip";
-
 import QuestionEditor from '@/components/QuestionEditor';
-import { Question, QuestionType } from '@/types/survey';
+import SurveyPreview from '@/components/SurveyPreview';
 
-const ProjectEditor: React.FC = () => {
-  const { projectId } = useParams<{ projectId: string }>();
+const ProjectEditor = () => {
+  const { projectId } = useParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('build');
   const [projectName, setProjectName] = useState('');
-  const [questions, setQuestions] = useState<Question[]>([]);
+  const [questions, setQuestions] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
   const [showQuestionsPanel, setShowQuestionsPanel] = useState(true);
+  const [surveyLink, setSurveyLink] = useState('');
 
   useEffect(() => {
     if (projectId) {
@@ -49,6 +49,10 @@ const ProjectEditor: React.FC = () => {
           ]
         }
       ]);
+      
+      // Generate survey link based on current URL
+      const baseUrl = window.location.origin;
+      setSurveyLink(`${baseUrl}/survey/${projectId}`);
     }
   }, [projectId]);
 
@@ -65,8 +69,8 @@ const ProjectEditor: React.FC = () => {
     }
   };
 
-  const handleAddQuestion = (type: QuestionType) => {
-    const newQuestion: Question = {
+  const handleAddQuestion = (type) => {
+    const newQuestion = {
       id: Date.now().toString(),
       type: type,
       title: '',
@@ -79,21 +83,34 @@ const ProjectEditor: React.FC = () => {
     setQuestions([...questions, newQuestion]);
   };
 
-  const handleQuestionChange = (updatedQuestion: Question) => {
-    setQuestions(questions.map(q => 
-      q.id === updatedQuestion.id ? updatedQuestion : q
-    ));
+  const handleQuestionChange = (updatedQuestion) => {
+    setQuestions(questions.map((q) => q.id === updatedQuestion.id ? updatedQuestion : q));
   };
 
-  const handleDeleteQuestion = (questionId: string) => {
-    setQuestions(questions.filter(q => q.id !== questionId));
+  const handleDeleteQuestion = (questionId) => {
+    setQuestions(questions.filter((q) => q.id !== questionId));
     toast.success('问题已删除');
   };
 
   const handleCreateShareLink = () => {
-    const shareLink = `https://survey.example.com/${projectId}`;
-    navigator.clipboard.writeText(shareLink);
+    // Use the properly generated link
+    navigator.clipboard.writeText(surveyLink);
     toast.success('分享链接已复制到剪贴板');
+    
+    // Show a toast with a link to the survey
+    toast(() => (
+      <div className="flex flex-col">
+        <span>链接已复制！</span>
+        <a 
+          href={surveyLink} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="text-blue-500 hover:underline"
+        >
+          点击此处打开问卷
+        </a>
+      </div>
+    ));
   };
 
   const questionTypes = [
@@ -115,7 +132,7 @@ const ProjectEditor: React.FC = () => {
             <Button 
               variant="ghost" 
               size="icon" 
-              className="text-white mr-2" 
+              className="text-white mr-2"
               onClick={() => navigate('/projects')}
             >
               <ArrowLeft className="h-5 w-5" />
@@ -126,7 +143,7 @@ const ProjectEditor: React.FC = () => {
           <div className="flex items-center space-x-2">
             <Button 
               variant="ghost" 
-              size="sm" 
+              size="sm"
               className="text-white hover:bg-gray-800"
               onClick={handleSaveProject}
               disabled={isSaving}
@@ -136,7 +153,7 @@ const ProjectEditor: React.FC = () => {
             </Button>
             <Button 
               variant="ghost" 
-              size="icon" 
+              size="icon"
               className="text-white hover:bg-gray-800"
               onClick={handleCreateShareLink}
             >
@@ -144,7 +161,7 @@ const ProjectEditor: React.FC = () => {
             </Button>
             <Button 
               variant="ghost" 
-              size="icon" 
+              size="icon"
               className="text-white hover:bg-gray-800"
             >
               <Settings className="h-5 w-5" />
@@ -159,8 +176,8 @@ const ProjectEditor: React.FC = () => {
           <div className="container mx-auto">
             <Tabs 
               defaultValue="build" 
-              value={activeTab} 
-              onValueChange={setActiveTab} 
+              value={activeTab}
+              onValueChange={setActiveTab}
               className="w-full"
             >
               <TabsList className="grid w-full grid-cols-5 bg-gray-100 rounded-none h-auto">
@@ -200,81 +217,102 @@ const ProjectEditor: React.FC = () => {
         </div>
 
         <div className="flex flex-1">
-          {showQuestionsPanel && (
-            <div className="w-64 bg-white border-r p-4 overflow-y-auto">
-              <div className="mb-4">
-                <h3 className="font-medium text-gray-800 mb-2">问题类型</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  {questionTypes.map(({ type, icon: Icon, label }) => (
-                    <TooltipProvider key={type}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex flex-col items-center justify-center h-16 p-1 gap-1"
-                            onClick={() => handleAddQuestion(type as QuestionType)}
-                          >
-                            <Icon className="h-4 w-4" />
-                            <span className="text-xs">{label}</span>
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>添加{label}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+          <TabsContent value="build" className="flex-1 flex m-0 p-0">
+            {showQuestionsPanel && (
+              <div className="w-64 bg-white border-r p-4 overflow-y-auto">
+                <div className="mb-4">
+                  <h3 className="font-medium text-gray-800 mb-2">问题类型</h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    {questionTypes.map(({ type, icon: Icon, label }) => (
+                      <TooltipProvider key={type}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex flex-col items-center justify-center h-16 p-1 gap-1"
+                              onClick={() => handleAddQuestion(type)}
+                            >
+                              <Icon className="h-4 w-4" />
+                              <span className="text-xs">{label}</span>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>添加{label}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="flex-1 p-6 overflow-y-auto">
+              <div className="max-w-4xl mx-auto">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="mb-4"
+                  onClick={() => setShowQuestionsPanel(!showQuestionsPanel)}
+                >
+                  <Menu className="h-4 w-4 mr-2" />
+                  {showQuestionsPanel ? '隐藏问题面板' : '显示问题面板'}
+                </Button>
+
+                <div className="mb-6">
+                  <Input
+                    className="text-2xl font-semibold border-none bg-transparent focus-visible:ring-0 px-0"
+                    value={projectName}
+                    onChange={(e) => setProjectName(e.target.value)}
+                    placeholder="输入调查标题..."
+                  />
+                  <Textarea
+                    className="mt-2 resize-none"
+                    placeholder="输入调查说明..."
+                  />
+                </div>
+
+                <div className="space-y-4">
+                  {questions.map((question) => (
+                    <QuestionEditor
+                      key={question.id}
+                      question={question}
+                      onChange={handleQuestionChange}
+                      onDelete={() => handleDeleteQuestion(question.id)}
+                    />
                   ))}
+                </div>
+
+                <Button
+                  onClick={() => handleAddQuestion('single')}
+                  className="mt-6"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  添加问题
+                </Button>
+              </div>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="preview" className="flex-1 m-0 p-0">
+            <div className="flex flex-col h-full">
+              <div className="bg-white border-b p-2 flex justify-between items-center">
+                <div className="text-sm font-medium">问卷预览</div>
+                <div className="flex items-center">
+                  <Link to={surveyLink} target="_blank" className="flex items-center text-sm text-blue-600 hover:underline">
+                    <Eye className="h-4 w-4 mr-1" /> 
+                    在新窗口打开
+                  </Link>
+                </div>
+              </div>
+              <div className="flex-1 p-4 bg-gray-100 overflow-auto">
+                <div className="mx-auto max-w-lg h-full bg-white rounded-lg shadow p-0 flex flex-col">
+                  <SurveyPreview questions={questions} />
                 </div>
               </div>
             </div>
-          )}
-
-          <div className="flex-1 p-6 overflow-y-auto">
-            <div className="max-w-4xl mx-auto">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="mb-4"
-                onClick={() => setShowQuestionsPanel(!showQuestionsPanel)}
-              >
-                <Menu className="h-4 w-4 mr-2" />
-                {showQuestionsPanel ? '隐藏问题面板' : '显示问题面板'}
-              </Button>
-
-              <div className="mb-6">
-                <Input
-                  className="text-2xl font-semibold border-none bg-transparent focus-visible:ring-0 px-0"
-                  value={projectName}
-                  onChange={(e) => setProjectName(e.target.value)}
-                  placeholder="输入调查标题..."
-                />
-                <Textarea
-                  className="mt-2 resize-none"
-                  placeholder="输入调查说明..."
-                />
-              </div>
-
-              <div className="space-y-4">
-                {questions.map((question) => (
-                  <QuestionEditor
-                    key={question.id}
-                    question={question}
-                    onChange={handleQuestionChange}
-                    onDelete={() => handleDeleteQuestion(question.id)}
-                  />
-                ))}
-              </div>
-
-              <Button
-                onClick={() => handleAddQuestion('single')}
-                className="mt-6"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                添加问题
-              </Button>
-            </div>
-          </div>
+          </TabsContent>
         </div>
       </div>
     </DndProvider>

@@ -1,11 +1,13 @@
 
-import React, { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useState, useRef, useEffect } from 'react';
 import { Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { toast } from 'sonner';
 import { Question } from '@/types/survey';
+
+interface SurveyPreviewProps {
+  questions: Question[];
+}
 
 interface Message {
   id: string;
@@ -14,63 +16,32 @@ interface Message {
   questionId?: string;
 }
 
-const SurveyChat: React.FC = () => {
-  const { surveyId } = useParams<{ surveyId: string }>();
+const SurveyPreview: React.FC<SurveyPreviewProps> = ({ questions }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [userInput, setUserInput] = useState('');
   const [currentQuestion, setCurrentQuestion] = useState<number>(0);
-  const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [isComplete, setIsComplete] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // In a real app, we would fetch the survey from an API using surveyId
-    const mockQuestions: Question[] = [
-      {
-        id: '1',
-        type: 'single',
-        title: '您好！接下来我想问您几个关于化妆品的问题。您的答案对于我来说非常重要！您是否愿意继续回答呢？',
-        required: true,
-        options: [
-          { id: '1', text: '好的' },
-          { id: '2', text: '不愿意' }
-        ]
-      },
-      {
-        id: '2',
-        type: 'open',
-        title: '感谢您的确认！我很高兴您愿意参与这个话题。为了更好了解您的化妆品偏好和知识，我可以问一下您知道或使用过哪些化妆品品牌吗？无论是高端品牌、大众品牌还是小众品牌都可以分享。',
-        required: true,
-      },
-      {
-        id: '3',
-        type: 'multiple',
-        title: '您通常在哪些渠道购买化妆品？',
-        required: true,
-        options: [
-          { id: '1', text: '实体商店' },
-          { id: '2', text: '电商平台' },
-          { id: '3', text: '品牌官网' },
-          { id: '4', text: '代购' },
-          { id: '5', text: '其他' }
-        ]
-      }
-    ];
-    
-    setQuestions(mockQuestions);
-    
-    // Add welcome message
-    setMessages([
-      {
+    // Reset state when questions change
+    setMessages([]);
+    setCurrentQuestion(0);
+    setAnswers({});
+    setIsComplete(false);
+
+    // Add welcome message with first question if available
+    if (questions.length > 0) {
+      // Welcome message
+      const welcomeMessage = {
         id: '0',
-        content: mockQuestions[0].title,
-        sender: 'bot',
-        questionId: mockQuestions[0].id
-      }
-    ]);
-  }, [surveyId]);
+        content: '您好！接下来我想问您几个关于化妆品的问题。您的答案对于我来说非常重要！您是否愿意继续回答呢？',
+        sender: 'bot' as const
+      };
+      setMessages([welcomeMessage]);
+    }
+  }, [questions]);
 
   useEffect(() => {
     scrollToBottom();
@@ -83,8 +54,6 @@ const SurveyChat: React.FC = () => {
   const handleSend = () => {
     if (userInput.trim() === '') return;
     
-    const currentQ = questions[currentQuestion];
-    
     // Add user message
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -94,17 +63,39 @@ const SurveyChat: React.FC = () => {
     
     setMessages(prev => [...prev, userMessage]);
     
-    // Save answer
-    setAnswers(prev => ({
-      ...prev,
-      [currentQ.id]: userInput
-    }));
-    
     // Clear input
     setUserInput('');
     
-    // Move to next question
-    moveToNextQuestion();
+    // Handle first welcome message
+    if (messages.length === 1 && !messages[0].questionId) {
+      // Show first question
+      setTimeout(() => {
+        if (questions.length > 0) {
+          const botMessage: Message = {
+            id: Date.now().toString(),
+            content: questions[0].title,
+            sender: 'bot',
+            questionId: questions[0].id
+          };
+          setMessages(prev => [...prev, botMessage]);
+        }
+      }, 500);
+      return;
+    }
+
+    // If we reach here, this is a text answer to a question
+    const currentQ = questions[currentQuestion];
+    
+    if (currentQ) {
+      // Save answer
+      setAnswers(prev => ({
+        ...prev,
+        [currentQ.id]: userInput
+      }));
+      
+      // Move to next question
+      moveToNextQuestion();
+    }
   };
 
   const handleOptionSelect = (optionId: string, optionText: string) => {
@@ -134,10 +125,8 @@ const SurveyChat: React.FC = () => {
         [currentQ.id]: optionId
       }));
       
-      // For multiple choice, don't move to next question yet
-      if (currentQ.type !== 'multiple') {
-        moveToNextQuestion();
-      }
+      // For single choice, move to next question automatically
+      moveToNextQuestion();
     }
   };
 
@@ -146,7 +135,13 @@ const SurveyChat: React.FC = () => {
     const selectedOptions = answers[currentQ.id] || [];
     
     if (currentQ.required && selectedOptions.length === 0) {
-      toast.error('请至少选择一个选项');
+      // Show error message
+      const errorMessage: Message = {
+        id: Date.now().toString(),
+        content: '请至少选择一个选项',
+        sender: 'bot',
+      };
+      setMessages(prev => [...prev, errorMessage]);
       return;
     }
     
@@ -178,51 +173,47 @@ const SurveyChat: React.FC = () => {
       setTimeout(() => {
         const completionMessage: Message = {
           id: Date.now().toString(),
-          content: '谢谢您完成了这次调查！您的回答对我们非常有价值。',
+          content: '感谢您的确认！我很高兴您愿意参与这个话题。为了更好了解您的化妆品偏好和知识，我可以问一下您知道或使用过哪些化妆品品牌吗？无论是高端品牌、大众品牌还是小众品牌都可以分享。',
           sender: 'bot'
         };
         setMessages(prev => [...prev, completionMessage]);
       }, 500);
-      
-      // Submit answers
-      handleSubmitSurvey();
-    }
-  };
-
-  const handleSubmitSurvey = async () => {
-    setIsSubmitting(true);
-    try {
-      // In a real app, we would submit to an API
-      console.log('Submitting answers:', answers);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      toast.success('调查已提交，谢谢您的参与！');
-    } catch (error) {
-      toast.error('提交失败，请重试');
-      console.error('Submit error:', error);
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
   const renderMessageContent = (message: Message) => {
     if (message.sender === 'user') {
-      return <div className="px-4 py-2 bg-blue-500 text-white rounded-lg">{message.content}</div>;
+      return (
+        <div className="px-4 py-2 bg-blue-500 text-white rounded-lg">
+          {message.content}
+        </div>
+      );
     }
     
     // Bot message
     const questionId = message.questionId;
     if (!questionId) {
-      return <div className="px-4 py-2 bg-gray-200 rounded-lg">{message.content}</div>;
+      return (
+        <div className="px-4 py-2 bg-gray-200 rounded-lg">
+          {message.content}
+        </div>
+      );
     }
     
     const question = questions.find(q => q.id === questionId);
     if (!question) {
-      return <div className="px-4 py-2 bg-gray-200 rounded-lg">{message.content}</div>;
+      return (
+        <div className="px-4 py-2 bg-gray-200 rounded-lg">
+          {message.content}
+        </div>
+      );
     }
     
     return (
       <div className="space-y-3">
-        <div className="px-4 py-2 bg-gray-200 rounded-lg">{message.content}</div>
+        <div className="px-4 py-2 bg-gray-200 rounded-lg">
+          {message.content}
+        </div>
         
         {question.type === 'single' && (
           <div className="flex flex-col space-y-2 mt-2">
@@ -273,6 +264,24 @@ const SurveyChat: React.FC = () => {
             )}
           </div>
         )}
+        
+        {(question.type === 'open' || question.type === 'numeric') && (
+          <div className="flex space-x-2 mt-2">
+            <Input
+              placeholder={`请输入${question.type === 'numeric' ? '数字' : '回答'}...`}
+              value={userInput}
+              onChange={(e) => setUserInput(e.target.value)}
+              disabled={currentQuestion !== questions.findIndex(q => q.id === questionId) || isComplete}
+              type={question.type === 'numeric' ? 'number' : 'text'}
+            />
+            <Button
+              onClick={handleSend}
+              disabled={!userInput.trim() || currentQuestion !== questions.findIndex(q => q.id === questionId) || isComplete}
+            >
+              发送
+            </Button>
+          </div>
+        )}
       </div>
     );
   };
@@ -282,11 +291,50 @@ const SurveyChat: React.FC = () => {
       return null;
     }
     
+    // For the initial greeting message
+    if (messages.length === 1 && !messages[0].questionId) {
+      return (
+        <div className="flex space-x-2">
+          <Button
+            className="w-full"
+            onClick={() => {
+              const userMessage: Message = {
+                id: Date.now().toString(),
+                content: '好的',
+                sender: 'user',
+              };
+              
+              setMessages(prev => [...prev, userMessage]);
+              
+              // Show first question
+              setTimeout(() => {
+                if (questions.length > 0) {
+                  const botMessage: Message = {
+                    id: Date.now().toString(),
+                    content: questions[0].title,
+                    sender: 'bot',
+                    questionId: questions[0].id
+                  };
+                  setMessages(prev => [...prev, botMessage]);
+                }
+              }, 500);
+            }}
+          >
+            好的
+          </Button>
+        </div>
+      );
+    }
+    
+    if (messages.length === 0 || !questions.length) {
+      return null;
+    }
+
     const currentQ = questions[currentQuestion];
     if (!currentQ) return null;
     
     if (currentQ.type === 'single' || currentQ.type === 'multiple') {
-      return null; // No input for choice questions
+      return null; // No input for choice questions, they have their own UI
     }
     
     return (
@@ -300,7 +348,7 @@ const SurveyChat: React.FC = () => {
             if (e.key === 'Enter') handleSend();
           }}
         />
-        <Button onClick={handleSend}>
+        <Button onClick={handleSend} disabled={!userInput.trim()}>
           <Send className="h-4 w-4" />
         </Button>
       </div>
@@ -308,7 +356,7 @@ const SurveyChat: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen max-w-lg mx-auto border">
+    <div className="flex flex-col h-full">
       {/* Chat Messages */}
       <div className="flex-1 p-4 overflow-y-auto">
         <div className="space-y-4">
@@ -334,4 +382,4 @@ const SurveyChat: React.FC = () => {
   );
 };
 
-export default SurveyChat;
+export default SurveyPreview;
