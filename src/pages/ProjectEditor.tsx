@@ -172,13 +172,13 @@ const ProjectEditor = () => {
           </div>
         </header>
 
-        <div className="bg-white border-b">
-          <div className="container mx-auto">
+        <div className="bg-white border-b flex-1 flex flex-col">
+          <div className="container mx-auto flex-1 flex flex-col">
             <Tabs 
               defaultValue="build" 
               value={activeTab}
               onValueChange={setActiveTab}
-              className="w-full"
+              className="w-full flex-1 flex flex-col"
             >
               <TabsList className="grid w-full grid-cols-5 bg-gray-100 rounded-none h-auto">
                 <TabsTrigger 
@@ -292,7 +292,7 @@ const ProjectEditor = () => {
                   </div>
                 </TabsContent>
                 
-                <TabsContent value="preview" className="flex-1 m-0 p-0">
+                <TabsContent value="preview" className="flex-1 m-0 p-0 flex flex-col h-full">
                   <div className="flex flex-col h-full">
                     <div className="bg-white border-b p-2 flex justify-between items-center">
                       <div className="text-sm font-medium">问卷预览</div>
@@ -304,7 +304,7 @@ const ProjectEditor = () => {
                       </div>
                     </div>
                     <div className="flex-1 p-4 bg-gray-100 overflow-auto">
-                      <div className="mx-auto max-w-lg h-full bg-white rounded-lg shadow p-0 flex flex-col">
+                      <div className="mx-auto max-w-lg h-[600px] bg-white rounded-lg shadow overflow-hidden flex flex-col">
                         <SurveyPreview questions={questions} />
                       </div>
                     </div>
