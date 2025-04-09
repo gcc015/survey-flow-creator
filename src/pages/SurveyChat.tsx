@@ -4,7 +4,7 @@ import { Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { Question } from '@/types/survey';
+import { Question, QuestionType } from '@/types/survey';
 
 interface Message {
   id: string;
@@ -111,7 +111,9 @@ const SurveyChat: React.FC = () => {
     
     setMessages(prev => [...prev, userMessage]);
     
-    if (currentQ.type === 'multiple') {
+    const multipleChoiceTypes: QuestionType[] = ['multiple'];
+    
+    if (multipleChoiceTypes.includes(currentQ.type)) {
       const currentAnswers = answers[currentQ.id] || [];
       setAnswers(prev => ({
         ...prev,
@@ -123,9 +125,7 @@ const SurveyChat: React.FC = () => {
         [currentQ.id]: optionId
       }));
       
-      if (currentQ.type !== 'multiple') {
-        moveToNextQuestion();
-      }
+      moveToNextQuestion();
     }
   };
 
