@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { Send } from 'lucide-react';
@@ -26,7 +25,6 @@ const SurveyChat: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // In a real app, we would fetch the survey from an API using surveyId
     const mockQuestions: Question[] = [
       {
         id: '1',
@@ -61,7 +59,6 @@ const SurveyChat: React.FC = () => {
     
     setQuestions(mockQuestions);
     
-    // Add welcome message
     setMessages([
       {
         id: '0',
@@ -85,7 +82,6 @@ const SurveyChat: React.FC = () => {
     
     const currentQ = questions[currentQuestion];
     
-    // Add user message
     const userMessage: Message = {
       id: Date.now().toString(),
       content: userInput,
@@ -94,23 +90,19 @@ const SurveyChat: React.FC = () => {
     
     setMessages(prev => [...prev, userMessage]);
     
-    // Save answer
     setAnswers(prev => ({
       ...prev,
       [currentQ.id]: userInput
     }));
     
-    // Clear input
     setUserInput('');
     
-    // Move to next question
     moveToNextQuestion();
   };
 
   const handleOptionSelect = (optionId: string, optionText: string) => {
     const currentQ = questions[currentQuestion];
     
-    // Add user message with selected option
     const userMessage: Message = {
       id: Date.now().toString(),
       content: optionText,
@@ -119,22 +111,18 @@ const SurveyChat: React.FC = () => {
     
     setMessages(prev => [...prev, userMessage]);
     
-    // Save answer
     if (currentQ.type === 'multiple') {
-      // For multiple choice, store as array
       const currentAnswers = answers[currentQ.id] || [];
       setAnswers(prev => ({
         ...prev,
         [currentQ.id]: [...currentAnswers, optionId]
       }));
     } else {
-      // For single choice
       setAnswers(prev => ({
         ...prev,
         [currentQ.id]: optionId
       }));
       
-      // For single choice (not multiple choice), move to next question
       if (currentQ.type !== 'multiple') {
         moveToNextQuestion();
       }
@@ -157,10 +145,8 @@ const SurveyChat: React.FC = () => {
     const nextQuestion = currentQuestion + 1;
     
     if (nextQuestion < questions.length) {
-      // Set next question
       setCurrentQuestion(nextQuestion);
       
-      // Add bot message with next question
       setTimeout(() => {
         const botMessage: Message = {
           id: Date.now().toString(),
@@ -171,10 +157,8 @@ const SurveyChat: React.FC = () => {
         setMessages(prev => [...prev, botMessage]);
       }, 500);
     } else {
-      // Survey complete
       setIsComplete(true);
       
-      // Add completion message
       setTimeout(() => {
         const completionMessage: Message = {
           id: Date.now().toString(),
@@ -184,7 +168,6 @@ const SurveyChat: React.FC = () => {
         setMessages(prev => [...prev, completionMessage]);
       }, 500);
       
-      // Submit answers
       handleSubmitSurvey();
     }
   };
@@ -192,7 +175,6 @@ const SurveyChat: React.FC = () => {
   const handleSubmitSurvey = async () => {
     setIsSubmitting(true);
     try {
-      // In a real app, we would submit to an API
       console.log('Submitting answers:', answers);
       await new Promise(resolve => setTimeout(resolve, 1000));
       toast.success('调查已提交，谢谢您的参与！');
@@ -209,7 +191,6 @@ const SurveyChat: React.FC = () => {
       return <div className="px-4 py-2 bg-blue-500 text-white rounded-lg">{message.content}</div>;
     }
     
-    // Bot message
     const questionId = message.questionId;
     if (!questionId) {
       return <div className="px-4 py-2 bg-gray-200 rounded-lg">{message.content}</div>;
@@ -285,7 +266,7 @@ const SurveyChat: React.FC = () => {
     const currentQ = questions[currentQuestion];
     if (!currentQ) return null;
     
-    if (currentQ.type === 'single' || currentQ.type === 'multiple') {
+    if (['single', 'multiple'].includes(currentQ.type)) {
       return null; // No input for choice questions
     }
     
@@ -309,7 +290,6 @@ const SurveyChat: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen max-w-lg mx-auto border">
-      {/* Chat Messages */}
       <div className="flex-1 p-4 overflow-y-auto">
         <div className="space-y-4">
           {messages.map((message) => (
@@ -326,7 +306,6 @@ const SurveyChat: React.FC = () => {
         </div>
       </div>
       
-      {/* Input Area */}
       <div className="border-t p-4">
         {renderInputSection()}
       </div>
