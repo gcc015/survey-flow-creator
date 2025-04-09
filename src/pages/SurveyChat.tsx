@@ -134,7 +134,7 @@ const SurveyChat: React.FC = () => {
         [currentQ.id]: optionId
       }));
       
-      // For multiple choice, don't move to next question yet
+      // For single choice (not multiple choice), move to next question
       if (currentQ.type !== 'multiple') {
         moveToNextQuestion();
       }

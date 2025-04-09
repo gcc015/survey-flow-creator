@@ -212,107 +212,128 @@ const ProjectEditor = () => {
                   报告
                 </TabsTrigger>
               </TabsList>
+
+              <div className="flex-1 flex">
+                <TabsContent value="build" className="flex-1 flex m-0 p-0">
+                  {showQuestionsPanel && (
+                    <div className="w-64 bg-white border-r p-4 overflow-y-auto">
+                      <div className="mb-4">
+                        <h3 className="font-medium text-gray-800 mb-2">问题类型</h3>
+                        <div className="grid grid-cols-2 gap-2">
+                          {questionTypes.map(({ type, icon: Icon, label }) => (
+                            <TooltipProvider key={type}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="flex flex-col items-center justify-center h-16 p-1 gap-1"
+                                    onClick={() => handleAddQuestion(type)}
+                                  >
+                                    <Icon className="h-4 w-4" />
+                                    <span className="text-xs">{label}</span>
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>添加{label}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex-1 p-6 overflow-y-auto">
+                    <div className="max-w-4xl mx-auto">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="mb-4"
+                        onClick={() => setShowQuestionsPanel(!showQuestionsPanel)}
+                      >
+                        <Menu className="h-4 w-4 mr-2" />
+                        {showQuestionsPanel ? '隐藏问题面板' : '显示问题面板'}
+                      </Button>
+
+                      <div className="mb-6">
+                        <Input
+                          className="text-2xl font-semibold border-none bg-transparent focus-visible:ring-0 px-0"
+                          value={projectName}
+                          onChange={(e) => setProjectName(e.target.value)}
+                          placeholder="输入调查标题..."
+                        />
+                        <Textarea
+                          className="mt-2 resize-none"
+                          placeholder="输入调查说明..."
+                        />
+                      </div>
+
+                      <div className="space-y-4">
+                        {questions.map((question) => (
+                          <QuestionEditor
+                            key={question.id}
+                            question={question}
+                            onChange={handleQuestionChange}
+                            onDelete={() => handleDeleteQuestion(question.id)}
+                          />
+                        ))}
+                      </div>
+
+                      <Button
+                        onClick={() => handleAddQuestion('single')}
+                        className="mt-6"
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        添加问题
+                      </Button>
+                    </div>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="preview" className="flex-1 m-0 p-0">
+                  <div className="flex flex-col h-full">
+                    <div className="bg-white border-b p-2 flex justify-between items-center">
+                      <div className="text-sm font-medium">问卷预览</div>
+                      <div className="flex items-center">
+                        <Link to={surveyLink} target="_blank" className="flex items-center text-sm text-blue-600 hover:underline">
+                          <Eye className="h-4 w-4 mr-1" /> 
+                          在新窗口打开
+                        </Link>
+                      </div>
+                    </div>
+                    <div className="flex-1 p-4 bg-gray-100 overflow-auto">
+                      <div className="mx-auto max-w-lg h-full bg-white rounded-lg shadow p-0 flex flex-col">
+                        <SurveyPreview questions={questions} />
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="overview" className="flex-1 p-4">
+                  <div className="max-w-4xl mx-auto">
+                    <h2 className="text-2xl font-bold mb-4">项目概览</h2>
+                    <p>暂无数据</p>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="responses" className="flex-1 p-4">
+                  <div className="max-w-4xl mx-auto">
+                    <h2 className="text-2xl font-bold mb-4">回复列表</h2>
+                    <p>暂无回复数据</p>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="report" className="flex-1 p-4">
+                  <div className="max-w-4xl mx-auto">
+                    <h2 className="text-2xl font-bold mb-4">数据报告</h2>
+                    <p>暂无报告数据</p>
+                  </div>
+                </TabsContent>
+              </div>
             </Tabs>
           </div>
-        </div>
-
-        <div className="flex flex-1">
-          <TabsContent value="build" className="flex-1 flex m-0 p-0">
-            {showQuestionsPanel && (
-              <div className="w-64 bg-white border-r p-4 overflow-y-auto">
-                <div className="mb-4">
-                  <h3 className="font-medium text-gray-800 mb-2">问题类型</h3>
-                  <div className="grid grid-cols-2 gap-2">
-                    {questionTypes.map(({ type, icon: Icon, label }) => (
-                      <TooltipProvider key={type}>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex flex-col items-center justify-center h-16 p-1 gap-1"
-                              onClick={() => handleAddQuestion(type)}
-                            >
-                              <Icon className="h-4 w-4" />
-                              <span className="text-xs">{label}</span>
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>添加{label}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="flex-1 p-6 overflow-y-auto">
-              <div className="max-w-4xl mx-auto">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="mb-4"
-                  onClick={() => setShowQuestionsPanel(!showQuestionsPanel)}
-                >
-                  <Menu className="h-4 w-4 mr-2" />
-                  {showQuestionsPanel ? '隐藏问题面板' : '显示问题面板'}
-                </Button>
-
-                <div className="mb-6">
-                  <Input
-                    className="text-2xl font-semibold border-none bg-transparent focus-visible:ring-0 px-0"
-                    value={projectName}
-                    onChange={(e) => setProjectName(e.target.value)}
-                    placeholder="输入调查标题..."
-                  />
-                  <Textarea
-                    className="mt-2 resize-none"
-                    placeholder="输入调查说明..."
-                  />
-                </div>
-
-                <div className="space-y-4">
-                  {questions.map((question) => (
-                    <QuestionEditor
-                      key={question.id}
-                      question={question}
-                      onChange={handleQuestionChange}
-                      onDelete={() => handleDeleteQuestion(question.id)}
-                    />
-                  ))}
-                </div>
-
-                <Button
-                  onClick={() => handleAddQuestion('single')}
-                  className="mt-6"
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  添加问题
-                </Button>
-              </div>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="preview" className="flex-1 m-0 p-0">
-            <div className="flex flex-col h-full">
-              <div className="bg-white border-b p-2 flex justify-between items-center">
-                <div className="text-sm font-medium">问卷预览</div>
-                <div className="flex items-center">
-                  <Link to={surveyLink} target="_blank" className="flex items-center text-sm text-blue-600 hover:underline">
-                    <Eye className="h-4 w-4 mr-1" /> 
-                    在新窗口打开
-                  </Link>
-                </div>
-              </div>
-              <div className="flex-1 p-4 bg-gray-100 overflow-auto">
-                <div className="mx-auto max-w-lg h-full bg-white rounded-lg shadow p-0 flex flex-col">
-                  <SurveyPreview questions={questions} />
-                </div>
-              </div>
-            </div>
-          </TabsContent>
         </div>
       </div>
     </DndProvider>
