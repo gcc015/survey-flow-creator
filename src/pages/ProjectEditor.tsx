@@ -98,7 +98,7 @@ const ProjectEditor = () => {
     toast.success('分享链接已复制到剪贴板');
     
     // Show a toast with a link to the survey
-    toast(() => (
+    toast(
       <div className="flex flex-col">
         <span>链接已复制！</span>
         <a 
@@ -110,7 +110,7 @@ const ProjectEditor = () => {
           点击此处打开问卷
         </a>
       </div>
-    ));
+    );
   };
 
   const questionTypes = [
