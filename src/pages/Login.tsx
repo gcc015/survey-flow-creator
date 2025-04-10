@@ -49,11 +49,11 @@ const Login = () => {
           <Logo />
         </div>
         
-        <div className="mb-6 text-center">
+        {/* <div className="mb-6 text-center">
           <h2 className="text-lg font-bold tracking-wider text-gray-800 uppercase border-b-2 border-gray-200 inline-block pb-2">
             标准登录
           </h2>
-        </div>
+        </div> */}
         
         <Card className="shadow-lg">
           <CardContent className="pt-6">
@@ -105,7 +105,7 @@ const Login = () => {
               </Button>
             </form>
             
-            <div className="mt-6">
+            {/* <div className="mt-6">
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-gray-200"></div>
@@ -144,7 +144,7 @@ const Login = () => {
                   Google 登录
                 </Button>
               </div>
-            </div>
+            </div> */}
           </CardContent>
         </Card>
         
@@ -152,9 +152,9 @@ const Login = () => {
           <a href="#" className="text-sm text-brand-500 hover:text-brand-600 hover:underline">
             忘记密码？
           </a>
-          <a href="#" className="text-sm text-brand-500 hover:text-brand-600 hover:underline">
+          {/* <a href="#" className="text-sm text-brand-500 hover:text-brand-600 hover:underline">
             员工登录
-          </a>
+          </a> */}
         </div>
       </div>
     </div>
