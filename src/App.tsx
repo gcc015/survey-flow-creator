@@ -12,6 +12,7 @@ import CreateProject from "./pages/CreateProject";
 import SurveyChat from "./pages/SurveyChat";
 import SurveyResults from "./pages/SurveyResults";
 import NotFound from "./pages/NotFound";
+import AdminUsers from "./pages/AdminUsers";
 
 const queryClient = new QueryClient();
 
@@ -120,6 +121,14 @@ const App = () => {
                 element={
                   <ProtectedRoute>
                     <SurveyResults />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/users" 
+                element={
+                  <ProtectedRoute>
+                    <AdminUsers />
                   </ProtectedRoute>
                 } 
               />

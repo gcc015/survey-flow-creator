@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { Checkbox } from "@/components/ui/checkbox";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import Logo from '@/components/Logo';
+import { useAuth } from '@/App';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -18,6 +19,14 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { checkAuth } = useAuth();
+  
+  // Check if already logged in
+  useEffect(() => {
+    if (checkAuth()) {
+      navigate('/projects');
+    }
+  }, [checkAuth, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,8 +34,12 @@ const Login = () => {
     setError('');
     
     try {
+      // Construct the API URL based on environment
+      // In development, we're using the local server
+      const apiUrl = 'http://localhost:3001/api/auth/login';
+      
       // Send a login request to your backend API
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

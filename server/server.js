@@ -1,0 +1,175 @@
+
+const express = require('express');
+const cors = require('cors');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const { pool, testConnection, initDb } = require('./db');
+
+const app = express();
+const PORT = process.env.PORT || 3001;
+
+// JWT secret key (in production, store this in environment variables)
+const JWT_SECRET = 'your_jwt_secret_key_change_this_in_production';
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+
+// Authentication middleware
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  
+  if (!token) return res.status(401).json({ message: 'Access denied' });
+  
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) return res.status(403).json({ message: 'Invalid or expired token' });
+    req.user = user;
+    next();
+  });
+};
+
+// Admin middleware
+const isAdmin = (req, res, next) => {
+  if (!req.user.isAdmin) {
+    return res.status(403).json({ message: 'Requires admin privileges' });
+  }
+  next();
+};
+
+// Login route
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    // Validate input
+    if (!email || !password) {
+      return res.status(400).json({ message: '邮箱和密码不能为空' });
+    }
+    
+    // Check if user exists
+    const [users] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
+    
+    if (users.length === 0) {
+      return res.status(401).json({ message: '邮箱或密码错误' });
+    }
+    
+    const user = users[0];
+    
+    // Compare passwords
+    const validPassword = await bcrypt.compare(password, user.password);
+    
+    if (!validPassword) {
+      return res.status(401).json({ message: '邮箱或密码错误' });
+    }
+    
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: user.id, email: user.email, isAdmin: user.is_admin },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+    
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        isAdmin: user.is_admin
+      }
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ message: '服务器错误，请稍后再试' });
+  }
+});
+
+// Get all users (admin only)
+app.get('/api/admin/users', authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const [users] = await pool.query('SELECT id, email, is_admin, created_at FROM users');
+    res.json(users);
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).json({ message: 'Failed to fetch users' });
+  }
+});
+
+// Add a new user (admin only)
+app.post('/api/admin/users', authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password are required' });
+    }
+    
+    // Check if email already exists
+    const [existingUsers] = await pool.query('SELECT id FROM users WHERE email = ?', [email]);
+    
+    if (existingUsers.length > 0) {
+      return res.status(400).json({ message: '该邮箱已被注册' });
+    }
+    
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    // Insert new user
+    const [result] = await pool.query(
+      'INSERT INTO users (email, password) VALUES (?, ?)',
+      [email, hashedPassword]
+    );
+    
+    res.status(201).json({
+      id: result.insertId,
+      email,
+      message: '用户创建成功'
+    });
+  } catch (error) {
+    console.error('Error creating user:', error);
+    res.status(500).json({ message: '创建用户失败' });
+  }
+});
+
+// Delete a user (admin only)
+app.delete('/api/admin/users/:id', authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const userId = req.params.id;
+    
+    // Prevent deleting yourself
+    if (parseInt(userId) === req.user.id) {
+      return res.status(400).json({ message: '不能删除当前登录的管理员账户' });
+    }
+    
+    const [result] = await pool.query('DELETE FROM users WHERE id = ?', [userId]);
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: '用户不存在' });
+    }
+    
+    res.json({ message: '用户删除成功' });
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    res.status(500).json({ message: '删除用户失败' });
+  }
+});
+
+// Start server
+async function startServer() {
+  // Test database connection
+  const dbConnected = await testConnection();
+  
+  if (dbConnected) {
+    // Initialize database tables
+    await initDb();
+    
+    // Start the Express server
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  } else {
+    console.error('Could not connect to database. Server not started.');
+  }
+}
+
+startServer();
