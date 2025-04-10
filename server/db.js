@@ -1,5 +1,6 @@
 
-const mysql = require('mysql2/promise');
+import mysql from 'mysql2/promise';
+import bcrypt from 'bcryptjs';
 
 // Create a connection pool
 const pool = mysql.createPool({
@@ -42,7 +43,6 @@ async function initDb() {
     const [admins] = await pool.query('SELECT * FROM users WHERE is_admin = true LIMIT 1');
     
     if (admins.length === 0) {
-      const bcrypt = require('bcryptjs');
       const hashedPassword = await bcrypt.hash('admin123', 10);
       
       await pool.query(
@@ -60,7 +60,7 @@ async function initDb() {
   }
 }
 
-module.exports = {
+export {
   pool,
   testConnection,
   initDb

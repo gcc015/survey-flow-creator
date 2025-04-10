@@ -1,9 +1,9 @@
 
-const express = require('express');
-const cors = require('cors');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const { pool, testConnection, initDb } = require('./db');
+import express from 'express';
+import cors from 'cors';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { pool, testConnection, initDb } from './db.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
