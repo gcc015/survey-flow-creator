@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 
 // Create a connection pool
 const pool = mysql.createPool({
-  host: 'localhost',     // MySQL host
+  host: '127.0.0.1',     // MySQL host
   user: 'root',          // MySQL username (default is root)
   password: 'admin',          // MySQL password (replace with your password)
   database: 'deep_survey' // Database name (create this in MySQL)
