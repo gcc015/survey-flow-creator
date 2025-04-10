@@ -1,31 +1,39 @@
 
-import React from 'react';
+import React from "react";
+import { Eye } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-const Logo: React.FC = () => {
+interface LogoProps {
+  size?: number;
+  iconColor?: string;
+  textColor?: string;
+  fontSize?: string;
+  hideText?: boolean;
+  className?: string;
+}
+
+export default function Logo({
+  size = 100,
+  iconColor = "#1a365d",
+  textColor = "#1a365d", 
+  fontSize = "text-3xl",
+  hideText = false,
+  className
+}: LogoProps) {
   return (
-    <div className="flex items-center justify-center">
-      <div className="relative w-20 h-20">
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-12 h-12 rounded-full bg-white border-4 border-brand-500" />
-        </div>
-        <div className="absolute inset-0">
-          {Array.from({ length: 36 }).map((_, i) => (
-            <div
-              key={i}
-              className="absolute w-0.5 h-3 bg-brand-500 origin-bottom"
-              style={{
-                left: '50%',
-                bottom: '50%',
-                transform: `translateX(-50%) rotate(${i * 10}deg)`,
-                transformOrigin: 'bottom',
-              }}
-            />
-          ))}
-        </div>
+    <div className={cn("flex flex-col items-center", className)}>
+      <div className="mb-2">
+        <Eye 
+          size={size} 
+          strokeWidth={1.5} 
+          className={`text-[${iconColor}] stroke-current`}
+        />
       </div>
-      <div className="text-3xl font-bold text-brand-900 ml-2">dynata™</div>
+      {!hideText && (
+        <div className={`${fontSize} font-bold`} style={{ color: textColor }}>
+          DeepSurvey
+        </div>
+      )}
     </div>
   );
-};
-
-export default Logo;
+}
