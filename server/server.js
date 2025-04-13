@@ -4,7 +4,7 @@ import cors from 'cors';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { pool, testConnection, initDb } from './db.js';
-import config from './config.js';
+import config, { configValidation } from './config.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -25,6 +25,44 @@ app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
   next();
 });
+
+// Simple health check endpoint that doesn't require database
+app.get('/api/health', (req, res) => {
+  console.log('Health check endpoint accessed');
+  res.json({ 
+    status: 'online', 
+    timestamp: new Date().toISOString(),
+    database: {
+      configured: configValidation.valid,
+      connected: global.dbConnected === true
+    }
+  });
+});
+
+// Test endpoint - no authentication required
+app.get('/api/test', (req, res) => {
+  console.log('Test endpoint accessed');
+  res.json({ 
+    message: '服务器运行正常，API可访问',
+    database: {
+      configured: configValidation.valid,
+      connected: global.dbConnected === true
+    }
+  });
+});
+
+// Setup fallback middleware for DB-required routes when DB is down
+const dbRequiredMiddleware = (req, res, next) => {
+  if (!global.dbConnected) {
+    return res.status(503).json({ 
+      message: '数据库连接错误，请检查服务器配置',
+      details: 'Database connection is not available. Please check server configuration.',
+      configuration_valid: configValidation.valid,
+      issues: configValidation.issues
+    });
+  }
+  next();
+};
 
 // Authentication middleware
 const authenticateToken = (req, res, next) => {
@@ -47,6 +85,11 @@ const isAdmin = (req, res, next) => {
   }
   next();
 };
+
+// Use db middleware for all database-required routes
+app.use('/api/auth', dbRequiredMiddleware);
+app.use('/api/admin', dbRequiredMiddleware);
+app.use('/api/projects', dbRequiredMiddleware);
 
 // Login route
 app.post('/api/auth/login', async (req, res) => {
@@ -348,29 +391,36 @@ app.use((req, res) => {
 async function startServer() {
   try {
     console.log('Attempting to start server...');
-    console.log('Testing database connection...');
     
     // Test database connection
-    const dbConnected = await testConnection();
+    console.log('Testing database connection...');
+    global.dbConnected = await testConnection();
     
-    if (dbConnected) {
+    if (global.dbConnected) {
       console.log('Database connection successful!');
       
       // Initialize database tables
       console.log('Initializing database tables...');
       await initDb();
       console.log('Database tables initialized!');
-      
-      // Start the Express server
-      app.listen(PORT, () => {
-        console.log(`✅ Server running on port ${PORT}`);
-        console.log(`📡 API endpoints available at http://localhost:${PORT}/api`);
-        console.log(`🔍 Test endpoint: http://localhost:${PORT}/api/test`);
-        console.log(`❤️ Health check: http://localhost:${PORT}/api/health`);
-      });
     } else {
-      console.error('⚠️ Could not connect to database. Server not started.');
+      console.warn('⚠️ Starting server without database functionality. Some features will be limited.');
+      console.warn('⚠️ Please check your database configuration and restart the server when fixed.');
     }
+    
+    // Start the Express server
+    app.listen(PORT, () => {
+      console.log(`✅ Server running on port ${PORT}`);
+      console.log(`📡 API endpoints available at http://localhost:${PORT}/api`);
+      console.log(`🔍 Test endpoint: http://localhost:${PORT}/api/test`);
+      console.log(`❤️ Health check: http://localhost:${PORT}/api/health`);
+      
+      if (!global.dbConnected) {
+        console.log('\n⚠️ DATABASE CONNECTION FAILED ⚠️');
+        console.log('The server is running with limited functionality.');
+        console.log('Database-dependent features will not work until this is fixed.');
+      }
+    });
   } catch (error) {
     console.error('❌ Error starting server:', error);
   }
