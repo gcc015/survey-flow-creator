@@ -17,6 +17,15 @@ const API_URL = import.meta.env.VITE_API_URL;
 const fetchProjects = async (): Promise<Project[]> => {
   const token = localStorage.getItem('authToken');
   
+  // Enhanced logging for debugging
+  console.group('FetchProjects API Call');
+  console.log('Environment Variables:');
+  console.log('Raw VITE_API_URL:', import.meta.env.VITE_API_URL);
+  console.log('Processed API_URL:', API_URL);
+  console.log('Using base URL:', API_URL || 'http://localhost:3001');
+  console.log('Auth Token:', token ? 'Token exists' : 'No token');
+  console.groupEnd();
+  
   console.log('Fetching projects with token:', token ? 'token exists' : 'no token');
   console.log('Raw VITE_API_URL:', import.meta.env.VITE_API_URL);
   console.log('Processed API_URL:', API_URL);

@@ -1,12 +1,5 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
@@ -15,16 +8,21 @@ interface CreateProjectData {
   description?: string;
 }
 
-// Make sure we're using a valid API URL
+// Ensure we're using a valid API URL
 const API_URL = import.meta.env.VITE_API_URL;
 
 const createProject = async (data: CreateProjectData) => {
   const token = localStorage.getItem('authToken');
   
+  // Enhanced logging for debugging
+  console.group('CreateProject API Call');
   console.log('Creating project with data:', data);
+  console.log('Environment Variables:');
   console.log('Raw VITE_API_URL:', import.meta.env.VITE_API_URL);
   console.log('Processed API_URL:', API_URL);
   console.log('Using base URL:', API_URL || 'http://localhost:3001');
+  console.log('Auth Token:', token ? 'Token exists' : 'No token');
+  console.groupEnd();
   
   try {
     // Use the environment variable if available, fallback to localhost only for development
@@ -175,4 +173,3 @@ const CreateProject: React.FC = () => {
 };
 
 export default CreateProject;
-
