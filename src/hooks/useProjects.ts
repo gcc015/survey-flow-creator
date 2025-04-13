@@ -14,34 +14,84 @@ export interface Project {
 // API functions
 const fetchProjects = async (): Promise<Project[]> => {
   const token = localStorage.getItem('authToken');
-  const response = await fetch('/api/projects', {
-    headers: {
-      'Authorization': `Bearer ${token}`
+  
+  console.log('Fetching projects with token:', token ? 'token exists' : 'no token');
+  
+  try {
+    const response = await fetch('http://localhost:3001/api/projects', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    console.log('Response status:', response.status);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Error response:', errorText);
+      throw new Error('Failed to fetch projects');
     }
-  });
-  
-  if (!response.ok) {
-    throw new Error('Failed to fetch projects');
+    
+    const responseText = await response.text();
+    console.log('Response text length:', responseText.length);
+    
+    if (!responseText.trim()) {
+      return [];
+    }
+    
+    try {
+      return JSON.parse(responseText);
+    } catch (e) {
+      console.error('Error parsing JSON:', e);
+      throw new Error('Invalid response format from server');
+    }
+  } catch (error) {
+    console.error('Fetch projects error:', error);
+    throw error;
   }
-  
-  return response.json();
 };
 
 const deleteProject = async (projectId: string): Promise<void> => {
   const token = localStorage.getItem('authToken');
-  const response = await fetch(`/api/projects/${projectId}`, {
-    method: 'DELETE',
-    headers: {
-      'Authorization': `Bearer ${token}`
+  
+  try {
+    const response = await fetch(`http://localhost:3001/api/projects/${projectId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorMessage;
+      
+      try {
+        const errorData = JSON.parse(errorText);
+        errorMessage = errorData.message || 'Failed to delete project';
+      } catch (e) {
+        errorMessage = 'Failed to delete project: Invalid server response';
+      }
+      
+      throw new Error(errorMessage);
     }
-  });
-  
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.message || 'Failed to delete project');
+    
+    const responseText = await response.text();
+    
+    if (!responseText.trim()) {
+      return;
+    }
+    
+    try {
+      return JSON.parse(responseText);
+    } catch (e) {
+      console.error('Error parsing JSON:', e);
+      return;
+    }
+  } catch (error) {
+    console.error('Delete project error:', error);
+    throw error;
   }
-  
-  return response.json();
 };
 
 export const useProjects = () => {

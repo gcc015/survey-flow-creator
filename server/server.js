@@ -13,8 +13,18 @@ const PORT = process.env.PORT || 3001;
 const JWT_SECRET = config.JWT_SECRET;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:5173', 'http://127.0.0.1:5173'], // Add your frontend origin
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Server error:', err);
+  res.status(500).json({ message: '服务器内部错误', error: err.message });
+});
 
 // Authentication middleware
 const authenticateToken = (req, res, next) => {
@@ -159,10 +169,14 @@ app.delete('/api/admin/users/:id', authenticateToken, isAdmin, async (req, res) 
 // Get all projects for the authenticated user
 app.get('/api/projects', authenticateToken, async (req, res) => {
   try {
+    console.log('GET /api/projects - User ID:', req.user.id);
+    
     const [projects] = await pool.query(
       'SELECT id, name, status, DATE_FORMAT(created_at, "%m/%d/%Y") as created, responses FROM projects WHERE user_id = ? ORDER BY created_at DESC',
       [req.user.id]
     );
+    
+    console.log('Projects found:', projects.length);
     res.json(projects);
   } catch (error) {
     console.error('Error fetching projects:', error);
@@ -173,6 +187,8 @@ app.get('/api/projects', authenticateToken, async (req, res) => {
 // Create a new project
 app.post('/api/projects', authenticateToken, async (req, res) => {
   try {
+    console.log('POST /api/projects - Request body:', req.body);
+    
     const { name, description } = req.body;
     
     if (!name) {
@@ -181,6 +197,8 @@ app.post('/api/projects', authenticateToken, async (req, res) => {
     
     // Generate a unique project ID
     const projectId = `FS-${Date.now().toString().substring(6)}-${name.substring(0, 5).replace(/\s+/g, '-')}`;
+    
+    console.log('Generated project ID:', projectId);
     
     // Start a transaction
     const connection = await pool.getConnection();
@@ -192,6 +210,8 @@ app.post('/api/projects', authenticateToken, async (req, res) => {
         'INSERT INTO projects (id, name, description, user_id, status, responses) VALUES (?, ?, ?, ?, ?, ?)',
         [projectId, name, description || '', req.user.id, 'draft', 0]
       );
+      
+      console.log('Project inserted, creating project_questions table');
       
       // Create a project_questions table for this project
       await connection.query(`
@@ -206,6 +226,8 @@ app.post('/api/projects', authenticateToken, async (req, res) => {
         )
       `);
       
+      console.log('Creating project_responses table');
+      
       // Create a project_responses table for this project
       await connection.query(`
         CREATE TABLE IF NOT EXISTS project_responses_${projectId.replace(/[^a-zA-Z0-9]/g, '_')} (
@@ -217,6 +239,8 @@ app.post('/api/projects', authenticateToken, async (req, res) => {
       
       await connection.commit();
       
+      console.log('Project creation successful');
+      
       res.status(201).json({
         id: projectId,
         name,
@@ -227,6 +251,7 @@ app.post('/api/projects', authenticateToken, async (req, res) => {
         message: '项目创建成功'
       });
     } catch (error) {
+      console.error('Error in transaction:', error);
       await connection.rollback();
       throw error;
     } finally {
@@ -234,7 +259,7 @@ app.post('/api/projects', authenticateToken, async (req, res) => {
     }
   } catch (error) {
     console.error('Error creating project:', error);
-    res.status(500).json({ message: '创建项目失败' });
+    res.status(500).json({ message: '创建项目失败: ' + error.message });
   }
 });
 
@@ -243,6 +268,8 @@ app.delete('/api/projects/:id', authenticateToken, async (req, res) => {
   try {
     const projectId = req.params.id;
     const sanitizedId = projectId.replace(/[^a-zA-Z0-9]/g, '_');
+
+    console.log(`DELETE /api/projects/${projectId} - User ID: ${req.user.id}`);
 
     // Start a transaction
     const connection = await pool.getConnection();
@@ -260,19 +287,28 @@ app.delete('/api/projects/:id', authenticateToken, async (req, res) => {
         return res.status(404).json({ message: '项目不存在或无权限删除' });
       }
       
+      console.log('Project found, deleting from projects table');
+      
       // Delete the project
       await connection.query('DELETE FROM projects WHERE id = ?', [projectId]);
       
+      console.log('Dropping project_questions table');
+      
       // Drop the project_questions table
       await connection.query(`DROP TABLE IF EXISTS project_questions_${sanitizedId}`);
+      
+      console.log('Dropping project_responses table');
       
       // Drop the project_responses table
       await connection.query(`DROP TABLE IF EXISTS project_responses_${sanitizedId}`);
       
       await connection.commit();
       
+      console.log('Project deletion successful');
+      
       res.json({ message: '项目删除成功' });
     } catch (error) {
+      console.error('Error in transaction:', error);
       await connection.rollback();
       throw error;
     } finally {
@@ -284,21 +320,31 @@ app.delete('/api/projects/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// Simple health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // Start server
 async function startServer() {
-  // Test database connection
-  const dbConnected = await testConnection();
-  
-  if (dbConnected) {
-    // Initialize database tables
-    await initDb();
+  try {
+    // Test database connection
+    const dbConnected = await testConnection();
     
-    // Start the Express server
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-    });
-  } else {
-    console.error('Could not connect to database. Server not started.');
+    if (dbConnected) {
+      // Initialize database tables
+      await initDb();
+      
+      // Start the Express server
+      app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+        console.log(`API available at http://localhost:${PORT}/api`);
+      });
+    } else {
+      console.error('Could not connect to database. Server not started.');
+    }
+  } catch (error) {
+    console.error('Error starting server:', error);
   }
 }
 

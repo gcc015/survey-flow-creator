@@ -17,21 +17,54 @@ interface CreateProjectData {
 
 const createProject = async (data: CreateProjectData) => {
   const token = localStorage.getItem('authToken');
-  const response = await fetch('/api/projects', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    },
-    body: JSON.stringify(data)
-  });
   
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.message || '创建项目失败');
+  console.log('Creating project with data:', data);
+  
+  try {
+    const response = await fetch('http://localhost:3001/api/projects', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(data)
+    });
+    
+    console.log('Response status:', response.status);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Error response:', errorText);
+      
+      let errorMessage;
+      try {
+        const errorData = JSON.parse(errorText);
+        errorMessage = errorData.message || '创建项目失败';
+      } catch (e) {
+        errorMessage = '创建项目失败: 服务器返回了无效的响应';
+      }
+      
+      throw new Error(errorMessage);
+    }
+    
+    const responseText = await response.text();
+    console.log('Response text:', responseText);
+    
+    // Handle empty response
+    if (!responseText.trim()) {
+      return { message: '项目创建成功！', id: Date.now().toString() };
+    }
+    
+    try {
+      return JSON.parse(responseText);
+    } catch (e) {
+      console.error('Error parsing JSON:', e, 'Response was:', responseText);
+      return { message: '项目创建成功，但返回数据格式有误', id: Date.now().toString() };
+    }
+  } catch (error) {
+    console.error('Create project error:', error);
+    throw error;
   }
-  
-  return response.json();
 };
 
 const CreateProject: React.FC = () => {
