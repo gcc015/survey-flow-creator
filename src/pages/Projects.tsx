@@ -90,17 +90,17 @@ const Projects: React.FC = () => {
       {/* Header */}
       <header className="bg-gray-900 text-white px-6 py-3 flex items-center justify-between">
         <div className="flex items-center">
-          <div className="text-lg font-medium mr-1">Dynata</div>
-          <div className="text-sm text-gray-300">- APAC</div>
+          <div className="text-lg font-medium mr-1">DeepSurvey</div>
+          <div className="text-sm text-gray-300"></div>
         </div>
         <div className="flex items-center space-x-4">
-          <div className="relative">
+          {/* <div className="relative">
             <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <Input 
               className="pl-9 bg-gray-800 border-gray-700 text-white w-64 h-8" 
               placeholder="搜索..." 
             />
-          </div>
+          </div> */}
           <div className="flex items-center space-x-3">
             <Button 
               size="icon" 

@@ -1,13 +1,18 @@
-
 import mysql from 'mysql2/promise';
 import bcrypt from 'bcryptjs';
+import config from './config.js';
+
+// console.log('DB_HOST:', config.DB_HOST);
+// console.log('DB_USER:', config.DB_USER);
+// console.log('DB_PASSWORD:', config.DB_PASSWORD);
+// console.log('DB_DATABASE:', config.DB_DATABASE);
 
 // Create a connection pool
 const pool = mysql.createPool({
-  host: '127.0.0.1',     // MySQL host
-  user: 'root',          // MySQL username (default is root)
-  password: 'admin',          // MySQL password (replace with your password)
-  database: 'deep_survey' // Database name (create this in MySQL)
+  host: config.DB_HOST,
+  user: config.DB_USER,
+  password: config.DB_PASSWORD,
+  database: config.DB_DATABASE
 });
 
 // Test the connection
