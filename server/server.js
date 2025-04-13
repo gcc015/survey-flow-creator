@@ -338,10 +338,10 @@ app.get('/api/test', (req, res) => {
   res.json({ message: '服务器运行正常，API可访问' });
 });
 
-// 修复：将通配符路由改为正确的格式，这里的问题可能是路径格式错误
-app.use('*', (req, res) => {
+// 修复：确保通配符路由定义正确，避免path-to-regexp错误
+app.use((req, res) => {
   console.log(`Received request for unknown route: ${req.originalUrl}`);
-  res.status(404).json({ message: `Route not found: ${req.originalUrl}` });
+  res.status(404).json({ message: '路由不存在: ' + req.originalUrl });
 });
 
 // Update the startServer function to provide more debugging
