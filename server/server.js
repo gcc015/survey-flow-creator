@@ -14,11 +14,17 @@ const JWT_SECRET = config.JWT_SECRET;
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://127.0.0.1:5173'], // Add your frontend origin
+  origin: ['http://localhost:5173', 'http://127.0.0.1:5173', 'https://e1ce44ec-a95b-47c7-afa8-1d6491e4facc.lovableproject.com'], // Add Lovable's domain
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
+
+// Add request logging middleware
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -322,36 +328,54 @@ app.delete('/api/projects/:id', authenticateToken, async (req, res) => {
 
 // Simple health check endpoint
 app.get('/api/health', (req, res) => {
+  console.log('Health check endpoint accessed');
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // 测试端点 - 无需认证
 app.get('/api/test', (req, res) => {
+  console.log('Test endpoint accessed');
   res.json({ message: '服务器运行正常，API可访问' });
 });
 
+// Catch-all route for debugging
+app.get('*', (req, res) => {
+  console.log(`Received request for unknown route: ${req.path}`);
+  res.status(404).json({ message: `Route not found: ${req.path}` });
+});
 
-// Start server
+// Update the startServer function to provide more debugging
 async function startServer() {
   try {
+    console.log('Attempting to start server...');
+    console.log('Testing database connection...');
+    
     // Test database connection
     const dbConnected = await testConnection();
     
     if (dbConnected) {
+      console.log('Database connection successful!');
+      
       // Initialize database tables
+      console.log('Initializing database tables...');
       await initDb();
+      console.log('Database tables initialized!');
       
       // Start the Express server
       app.listen(PORT, () => {
-        console.log(`Server running on port ${PORT}`);
-        console.log(`API available at http://localhost:${PORT}/api`);
+        console.log(`✅ Server running on port ${PORT}`);
+        console.log(`📡 API endpoints available at http://localhost:${PORT}/api`);
+        console.log(`🔍 Test endpoint: http://localhost:${PORT}/api/test`);
+        console.log(`❤️ Health check: http://localhost:${PORT}/api/health`);
       });
     } else {
-      console.error('Could not connect to database. Server not started.');
+      console.error('⚠️ Could not connect to database. Server not started.');
     }
   } catch (error) {
-    console.error('Error starting server:', error);
+    console.error('❌ Error starting server:', error);
   }
 }
 
+// Call the function to start the server
+console.log('Starting application server...');
 startServer();
