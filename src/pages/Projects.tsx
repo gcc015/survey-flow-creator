@@ -3,10 +3,19 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Search, Plus, Check, Filter, MoreHorizontal, 
-  ChevronDown, AlignJustify, BarChart3 
+  ChevronDown, AlignJustify, BarChart3, LogOut 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useAuth } from '@/App';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { toast } from 'sonner';
 
 interface Project {
   id: string;
@@ -18,6 +27,7 @@ interface Project {
 
 const Projects: React.FC = () => {
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   
   // Mock data for projects
@@ -85,6 +95,27 @@ const Projects: React.FC = () => {
     navigate(`/projects/${projectId}`);
   };
 
+  const handleLogout = () => {
+    logout();
+    toast.success('您已成功退出登录');
+    navigate('/login');
+  };
+
+  // Get initials for avatar
+  const getUserInitials = () => {
+    const email = localStorage.getItem('userEmail') || '';
+    if (email) {
+      // Get first letter of email or first two letters before @
+      const parts = email.split('@');
+      if (parts[0].length >= 2) {
+        return parts[0].substring(0, 2).toUpperCase();
+      } else {
+        return email.substring(0, 1).toUpperCase();
+      }
+    }
+    return 'JP'; // Default fallback
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -94,13 +125,6 @@ const Projects: React.FC = () => {
           <div className="text-sm text-gray-300"></div>
         </div>
         <div className="flex items-center space-x-4">
-          {/* <div className="relative">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <Input 
-              className="pl-9 bg-gray-800 border-gray-700 text-white w-64 h-8" 
-              placeholder="搜索..." 
-            />
-          </div> */}
           <div className="flex items-center space-x-3">
             <Button 
               size="icon" 
@@ -116,9 +140,23 @@ const Projects: React.FC = () => {
             >
               <BarChart3 className="h-5 w-5" />
             </Button>
-            <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center">
-              <span className="text-sm font-semibold">JP</span>
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                  <Avatar className="h-8 w-8 cursor-pointer">
+                    <AvatarFallback className="bg-blue-500 text-white">
+                      {getUserInitials()}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem className="cursor-pointer" onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>退出登录</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>
