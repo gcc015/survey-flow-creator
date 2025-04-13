@@ -4,12 +4,13 @@ import cors from 'cors';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { pool, testConnection, initDb } from './db.js';
+import config from './config.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// JWT secret key (in production, store this in environment variables)
-const JWT_SECRET = 'your_jwt_secret_key_change_this_in_production';
+// JWT secret key from config
+const JWT_SECRET = config.JWT_SECRET;
 
 // Middleware
 app.use(cors());
