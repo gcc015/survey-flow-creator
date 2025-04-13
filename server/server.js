@@ -1,18 +1,19 @@
-
 import express from 'express';
 import cors from 'cors';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import fs from 'fs';
+import path from 'path';
 import { pool, testConnection, initDb } from './db.js';
 import config, { configValidation } from './config.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// JWT secret key from config
+// JWT 密钥
 const JWT_SECRET = config.JWT_SECRET;
 
-// Middleware
+// 中间件
 app.use(cors({
   origin: ['http://localhost:5173', 'http://127.0.0.1:5173', 'https://e1ce44ec-a95b-47c7-afa8-1d6491e4facc.lovableproject.com'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -20,13 +21,13 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Add request logging middleware
+// 添加请求日志中间件
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
   next();
 });
 
-// Simple health check endpoint that doesn't require database
+// 简单的健康检查端点，不需要数据库
 app.get('/api/health', (req, res) => {
   console.log('Health check endpoint accessed');
   res.json({ 
@@ -39,7 +40,7 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Test endpoint - no authentication required
+// 测试端点 - 不需要身份验证
 app.get('/api/test', (req, res) => {
   console.log('Test endpoint accessed');
   res.json({ 
@@ -47,24 +48,34 @@ app.get('/api/test', (req, res) => {
     database: {
       configured: configValidation.valid,
       connected: global.dbConnected === true
+    },
+    env_diagnostics: {
+      cwd: process.cwd(),
+      env_file_path: path.resolve(process.cwd(), '.env'),
+      env_file_exists: fs.existsSync(path.resolve(process.cwd(), '.env'))
     }
   });
 });
 
-// Setup fallback middleware for DB-required routes when DB is down
+// 设置需要数据库的路由的回退中间件
 const dbRequiredMiddleware = (req, res, next) => {
   if (!global.dbConnected) {
     return res.status(503).json({ 
       message: '数据库连接错误，请检查服务器配置',
       details: 'Database connection is not available. Please check server configuration.',
       configuration_valid: configValidation.valid,
-      issues: configValidation.issues
+      issues: configValidation.issues,
+      env_diagnostics: {
+        cwd: process.cwd(),
+        env_file_path: path.resolve(process.cwd(), '.env'),
+        env_file_exists: fs.existsSync(path.resolve(process.cwd(), '.env'))
+      }
     });
   }
   next();
 };
 
-// Authentication middleware
+// 身份验证中间件
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -78,7 +89,7 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-// Admin middleware
+// 管理员中间件
 const isAdmin = (req, res, next) => {
   if (!req.user.isAdmin) {
     return res.status(403).json({ message: 'Requires admin privileges' });
@@ -86,12 +97,12 @@ const isAdmin = (req, res, next) => {
   next();
 };
 
-// Use db middleware for all database-required routes
+// 对所有需要数据库的路由使用 db 中间件
 app.use('/api/auth', dbRequiredMiddleware);
 app.use('/api/admin', dbRequiredMiddleware);
 app.use('/api/projects', dbRequiredMiddleware);
 
-// Login route
+// 登录路由
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -138,7 +149,7 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-// Get all users (admin only)
+// 获取所有用户（仅限管理员）
 app.get('/api/admin/users', authenticateToken, isAdmin, async (req, res) => {
   try {
     const [users] = await pool.query('SELECT id, email, is_admin, created_at FROM users');
@@ -149,7 +160,7 @@ app.get('/api/admin/users', authenticateToken, isAdmin, async (req, res) => {
   }
 });
 
-// Add a new user (admin only)
+// 添加新用户（仅限管理员）
 app.post('/api/admin/users', authenticateToken, isAdmin, async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -185,7 +196,7 @@ app.post('/api/admin/users', authenticateToken, isAdmin, async (req, res) => {
   }
 });
 
-// Delete a user (admin only)
+// 删除用户（仅限管理员）
 app.delete('/api/admin/users/:id', authenticateToken, isAdmin, async (req, res) => {
   try {
     const userId = req.params.id;
@@ -208,8 +219,8 @@ app.delete('/api/admin/users/:id', authenticateToken, isAdmin, async (req, res) 
   }
 });
 
-// Projects API endpoints
-// Get all projects for the authenticated user
+// 项目 API 端点
+// 获取已验证用户的所有项目
 app.get('/api/projects', authenticateToken, async (req, res) => {
   try {
     console.log('GET /api/projects - User ID:', req.user.id);
@@ -227,7 +238,7 @@ app.get('/api/projects', authenticateToken, async (req, res) => {
   }
 });
 
-// Create a new project
+// 创建新项目
 app.post('/api/projects', authenticateToken, async (req, res) => {
   try {
     console.log('POST /api/projects - Request body:', req.body);
@@ -306,7 +317,7 @@ app.post('/api/projects', authenticateToken, async (req, res) => {
   }
 });
 
-// Delete a project
+// 删除项目
 app.delete('/api/projects/:id', authenticateToken, async (req, res) => {
   try {
     const projectId = req.params.id;
@@ -363,69 +374,82 @@ app.delete('/api/projects/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Simple health check endpoint
-app.get('/api/health', (req, res) => {
-  console.log('Health check endpoint accessed');
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
-// Test endpoint - no authentication required
-app.get('/api/test', (req, res) => {
-  console.log('Test endpoint accessed');
-  res.json({ message: '服务器运行正常，API可访问' });
-});
-
-// Error handling middleware (must be defined after all routes)
+// 错误处理中间件（必须在所有路由之后定义）
 app.use((err, req, res, next) => {
   console.error('Server error:', err);
   res.status(500).json({ message: '服务器内部错误', error: err.message });
 });
 
-// 404 handler for unmatched routes (must be last)
+// 404 处理程序（必须在最后）
 app.use((req, res) => {
   console.log(`Request for non-existent route: ${req.originalUrl}`);
   res.status(404).json({ message: '路由不存在' });
 });
 
-// Start server function with enhanced debugging
+// 启动服务器函数，增强调试功能
 async function startServer() {
   try {
-    console.log('Attempting to start server...');
+    console.log('正在尝试启动服务器...');
     
-    // Test database connection
-    console.log('Testing database connection...');
+    // 打印一些诊断信息
+    console.log('当前工作目录:', process.cwd());
+    console.log('.env 文件路径:', path.resolve(process.cwd(), '.env'));
+    console.log('.env 文件是否存在:', fs.existsSync(path.resolve(process.cwd(), '.env')) ? '是' : '否');
+    
+    if (!fs.existsSync(path.resolve(process.cwd(), '.env'))) {
+      console.log('根目录下的文件:');
+      try {
+        const files = fs.readdirSync(process.cwd());
+        files.forEach(file => console.log(`- ${file}`));
+      } catch (err) {
+        console.error('无法读取目录:', err);
+      }
+    }
+    
+    // 测试数据库连接
+    console.log('测试数据库连接...');
     global.dbConnected = await testConnection();
     
     if (global.dbConnected) {
-      console.log('Database connection successful!');
+      console.log('数据库连接成功!');
       
-      // Initialize database tables
-      console.log('Initializing database tables...');
+      // 初始化数据库表
+      console.log('初始化数据库表...');
       await initDb();
-      console.log('Database tables initialized!');
+      console.log('数据库表初始化完成!');
     } else {
-      console.warn('⚠️ Starting server without database functionality. Some features will be limited.');
-      console.warn('⚠️ Please check your database configuration and restart the server when fixed.');
+      console.warn('⚠️ 正在启动服务器，但数据库功能有限。某些功能将受到限制。');
+      console.warn('⚠️ 请检查您的数据库配置，并在修复后重新启动服务器。');
     }
     
-    // Start the Express server
+    // 启动 Express 服务器
     app.listen(PORT, () => {
-      console.log(`✅ Server running on port ${PORT}`);
-      console.log(`📡 API endpoints available at http://localhost:${PORT}/api`);
-      console.log(`🔍 Test endpoint: http://localhost:${PORT}/api/test`);
-      console.log(`❤️ Health check: http://localhost:${PORT}/api/health`);
+      console.log(`✅ 服务器运行在端口 ${PORT}`);
+      console.log(`📡 API 端点可在 http://localhost:${PORT}/api 访问`);
+      console.log(`🔍 测试端点: http://localhost:${PORT}/api/test`);
+      console.log(`❤️ 健康检查: http://localhost:${PORT}/api/health`);
       
       if (!global.dbConnected) {
-        console.log('\n⚠️ DATABASE CONNECTION FAILED ⚠️');
-        console.log('The server is running with limited functionality.');
-        console.log('Database-dependent features will not work until this is fixed.');
+        console.log('\n⚠️ 数据库连接失败 ⚠️');
+        console.log('服务器正在以有限功能运行。');
+        console.log('依赖数据库的功能在修复之前将无法工作。');
+        console.log('\n请确保:');
+        console.log('1. 您已创建 .env 文件在项目根目录中');
+        console.log('2. .env 文件包含必要的数据库凭据');
+        console.log('3. MySQL 服务器正在运行且可访问');
+        console.log('\n示例 .env 文件内容:');
+        console.log('DB_HOST=localhost');
+        console.log('DB_USER=你的MySQL用户名');
+        console.log('DB_PASSWORD=你的MySQL密码');
+        console.log('DB_DATABASE=surveyflow');
+        console.log('JWT_SECRET=用于JWT令牌的密钥');
       }
     });
   } catch (error) {
-    console.error('❌ Error starting server:', error);
+    console.error('❌ 启动服务器错误:', error);
   }
 }
 
-// Call the function to start the server
-console.log('Starting application server...');
+// 调用函数启动服务器
+console.log('正在启动应用服务器...');
 startServer();
