@@ -1,11 +1,7 @@
+
 import mysql from 'mysql2/promise';
 import bcrypt from 'bcryptjs';
 import config from './config.js';
-
-// console.log('DB_HOST:', config.DB_HOST);
-// console.log('DB_USER:', config.DB_USER);
-// console.log('DB_PASSWORD:', config.DB_PASSWORD);
-// console.log('DB_DATABASE:', config.DB_DATABASE);
 
 // Create a connection pool
 const pool = mysql.createPool({
@@ -39,6 +35,20 @@ async function initDb() {
         password VARCHAR(255) NOT NULL,
         is_admin BOOLEAN DEFAULT false,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    
+    // Create projects table if it doesn't exist
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS projects (
+        id VARCHAR(255) PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        description TEXT,
+        user_id INT NOT NULL,
+        status ENUM('live', 'draft') DEFAULT 'draft',
+        responses INT DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       )
     `);
     

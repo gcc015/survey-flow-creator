@@ -1,9 +1,9 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Search, Plus, Check, Filter, MoreHorizontal, 
-  ChevronDown, AlignJustify, BarChart3, LogOut 
+  ChevronDown, AlignJustify, BarChart3, LogOut, Trash2 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { toast } from 'sonner';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface Project {
   id: string;
@@ -25,63 +26,69 @@ interface Project {
   responses: number;
 }
 
+// API functions
+const fetchProjects = async (): Promise<Project[]> => {
+  const token = localStorage.getItem('authToken');
+  const response = await fetch('/api/projects', {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+  
+  if (!response.ok) {
+    throw new Error('Failed to fetch projects');
+  }
+  
+  return response.json();
+};
+
+const deleteProject = async (projectId: string): Promise<void> => {
+  const token = localStorage.getItem('authToken');
+  const response = await fetch(`/api/projects/${projectId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || 'Failed to delete project');
+  }
+  
+  return response.json();
+};
+
 const Projects: React.FC = () => {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
+  const queryClient = useQueryClient();
   
-  // Mock data for projects
-  const [projects] = useState<Project[]>([
-    { 
-      id: 'FS-DRD-1316795-T2B7-市场调研类-290421', 
-      name: 'FS-DRD-1316795-T2B7-市场调研类-290421', 
-      status: 'live', 
-      created: '04/05/2023', 
-      responses: 732 
+  // Fetch projects from API
+  const { data: projects = [], isLoading, error } = useQuery({
+    queryKey: ['projects'],
+    queryFn: fetchProjects
+  });
+  
+  // Delete project mutation
+  const deleteProjectMutation = useMutation({
+    mutationFn: deleteProject,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      toast.success('项目已成功删除');
     },
-    { 
-      id: 'FS-DRD-1292929-S856-Female-study-Verson-BIB-2202264', 
-      name: 'FS-DRD-1292929-S856-Female-study-Verson-BIB-2202264', 
-      status: 'live', 
-      created: '04/07/2023', 
-      responses: 495 
-    },
-    { 
-      id: 'Copy-of-用-隐藏的标-准设', 
-      name: 'Copy of 用 隐藏的标 准设', 
-      status: 'draft', 
-      created: '04/08/2023', 
-      responses: 0 
-    },
-    { 
-      id: 'Copy-of-FS-市-场营-销耐用消费-品报-告-230424', 
-      name: 'Copy of FS 市 场营 销耐用消费 品报 告 230424', 
-      status: 'draft', 
-      created: '04/10/2023', 
-      responses: 0 
-    },
-    { 
-      id: 'FS-营销服务市场规范问卷-2369351', 
-      name: 'FS 营销服务市场规范问卷 2369351', 
-      status: 'live', 
-      created: '04/12/2023', 
-      responses: 968 
-    },
-    { 
-      id: 'Survey_Test', 
-      name: 'Survey_Test', 
-      status: 'draft', 
-      created: '03/26/2023', 
-      responses: 529 
-    },
-    { 
-      id: 'FS-DRD-1231465-CMC7-D04-2920395', 
-      name: 'FS-DRD-1231465-CMC7-D04-2920395', 
-      status: 'live', 
-      created: '03/25/2023', 
-      responses: 533 
-    },
-  ]);
+    onError: (error: Error) => {
+      toast.error(error.message || '删除项目失败');
+    }
+  });
+
+  useEffect(() => {
+    if (error) {
+      toast.error('获取项目列表失败');
+      console.error('Error fetching projects:', error);
+    }
+  }, [error]);
 
   const filteredProjects = projects.filter(project => 
     project.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -93,6 +100,13 @@ const Projects: React.FC = () => {
 
   const handleProjectClick = (projectId: string) => {
     navigate(`/projects/${projectId}`);
+  };
+
+  const handleDeleteProject = (e: React.MouseEvent, projectId: string) => {
+    e.stopPropagation();
+    if (window.confirm('确定要删除此项目吗？')) {
+      deleteProjectMutation.mutate(projectId);
+    }
   };
 
   const handleLogout = () => {
@@ -201,71 +215,92 @@ const Projects: React.FC = () => {
 
           {/* Projects Table */}
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b bg-gray-50">
-                  <th className="w-12 px-4 py-3 text-left">
-                    <div className="flex items-center">
-                      <input type="checkbox" className="rounded border-gray-300" />
-                    </div>
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">名称</th>
-                  <th className="px-4 py-3 text-center text-sm font-medium text-gray-500">状态</th>
-                  <th className="px-4 py-3 text-center text-sm font-medium text-gray-500">创建日期</th>
-                  <th className="px-4 py-3 text-center text-sm font-medium text-gray-500">构建</th>
-                  <th className="px-4 py-3 text-center text-sm font-medium text-gray-500">回复数</th>
-                  <th className="px-4 py-3 text-center text-sm font-medium text-gray-500">报告</th>
-                  <th className="px-4 py-3 text-center text-sm font-medium text-gray-500">操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredProjects.map((project) => (
-                  <tr 
-                    key={project.id} 
-                    className="border-b hover:bg-gray-50 cursor-pointer"
-                    onClick={() => handleProjectClick(project.id)}
-                  >
-                    <td className="px-4 py-4">
+            {isLoading ? (
+              <div className="p-8 text-center">加载中...</div>
+            ) : filteredProjects.length === 0 ? (
+              <div className="p-8 text-center text-gray-500">
+                {searchTerm ? '没有找到匹配的项目' : '还没有创建任何项目，点击"新建调查"开始'}
+              </div>
+            ) : (
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b bg-gray-50">
+                    <th className="w-12 px-4 py-3 text-left">
                       <div className="flex items-center">
-                        <input type="checkbox" className="rounded border-gray-300" onClick={(e) => e.stopPropagation()} />
+                        <input type="checkbox" className="rounded border-gray-300" />
                       </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center">
-                        <div className="text-sm font-medium text-gray-900">{project.name}</div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 text-center">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                        ${project.status === 'live' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                        {project.status === 'live' ? 'LIVE' : 'DRAFT'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4 text-center text-sm text-gray-500">
-                      {project.created}
-                    </td>
-                    <td className="px-4 py-4 text-center">
-                      <Button size="icon" variant="ghost">
-                        <Check className="h-4 w-4" />
-                      </Button>
-                    </td>
-                    <td className="px-4 py-4 text-center text-sm font-medium text-blue-600">
-                      {project.responses}
-                    </td>
-                    <td className="px-4 py-4 text-center">
-                      <Button size="icon" variant="ghost">
-                        <BarChart3 className="h-4 w-4" />
-                      </Button>
-                    </td>
-                    <td className="px-4 py-4 text-center">
-                      <Button size="icon" variant="ghost" onClick={(e) => e.stopPropagation()}>
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </td>
+                    </th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">名称</th>
+                    <th className="px-4 py-3 text-center text-sm font-medium text-gray-500">状态</th>
+                    <th className="px-4 py-3 text-center text-sm font-medium text-gray-500">创建日期</th>
+                    <th className="px-4 py-3 text-center text-sm font-medium text-gray-500">构建</th>
+                    <th className="px-4 py-3 text-center text-sm font-medium text-gray-500">回复数</th>
+                    <th className="px-4 py-3 text-center text-sm font-medium text-gray-500">报告</th>
+                    <th className="px-4 py-3 text-center text-sm font-medium text-gray-500">操作</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {filteredProjects.map((project) => (
+                    <tr 
+                      key={project.id} 
+                      className="border-b hover:bg-gray-50 cursor-pointer"
+                      onClick={() => handleProjectClick(project.id)}
+                    >
+                      <td className="px-4 py-4">
+                        <div className="flex items-center">
+                          <input type="checkbox" className="rounded border-gray-300" onClick={(e) => e.stopPropagation()} />
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center">
+                          <div className="text-sm font-medium text-gray-900">{project.name}</div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                          ${project.status === 'live' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                          {project.status === 'live' ? 'LIVE' : 'DRAFT'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 text-center text-sm text-gray-500">
+                        {project.created}
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <Button size="icon" variant="ghost">
+                          <Check className="h-4 w-4" />
+                        </Button>
+                      </td>
+                      <td className="px-4 py-4 text-center text-sm font-medium text-blue-600">
+                        {project.responses}
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <Button size="icon" variant="ghost">
+                          <BarChart3 className="h-4 w-4" />
+                        </Button>
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                            <Button size="icon" variant="ghost">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem 
+                              className="text-red-600" 
+                              onClick={(e) => handleDeleteProject(e, project.id)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              <span>删除项目</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       </div>

@@ -8,12 +8,50 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+
+interface CreateProjectData {
+  name: string;
+  description?: string;
+}
+
+const createProject = async (data: CreateProjectData) => {
+  const token = localStorage.getItem('authToken');
+  const response = await fetch('/api/projects', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify(data)
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || '创建项目失败');
+  }
+  
+  return response.json();
+};
 
 const CreateProject: React.FC = () => {
   const navigate = useNavigate();
   const [projectName, setProjectName] = useState('');
   const [description, setDescription] = useState('');
-  const [isCreating, setIsCreating] = useState(false);
+  const queryClient = useQueryClient();
+  
+  const createProjectMutation = useMutation({
+    mutationFn: createProject,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      toast.success(data.message || '项目创建成功！');
+      navigate(`/projects/${data.id}`);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || '创建失败，请重试');
+      console.error('Create error:', error);
+    }
+  });
 
   const handleCreateProject = async () => {
     if (!projectName.trim()) {
@@ -21,22 +59,10 @@ const CreateProject: React.FC = () => {
       return;
     }
 
-    setIsCreating(true);
-    try {
-      // In a real app, we would make an API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Generate a project ID (this would come from the API in a real app)
-      const projectId = `FS-${Date.now().toString().substring(6)}-${projectName.substring(0, 5)}`;
-      
-      toast.success('项目创建成功！');
-      navigate(`/projects/${projectId}`);
-    } catch (error) {
-      toast.error('创建失败，请重试');
-      console.error('Create error:', error);
-    } finally {
-      setIsCreating(false);
-    }
+    createProjectMutation.mutate({
+      name: projectName,
+      description: description || undefined
+    });
   };
 
   return (
@@ -94,9 +120,9 @@ const CreateProject: React.FC = () => {
               </Button>
               <Button
                 onClick={handleCreateProject}
-                disabled={isCreating}
+                disabled={createProjectMutation.isPending}
               >
-                {isCreating ? '创建中...' : '创建项目'}
+                {createProjectMutation.isPending ? '创建中...' : '创建项目'}
               </Button>
             </CardFooter>
           </Card>
