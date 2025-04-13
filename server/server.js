@@ -325,6 +325,12 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// 测试端点 - 无需认证
+app.get('/api/test', (req, res) => {
+  res.json({ message: '服务器运行正常，API可访问' });
+});
+
+
 // Start server
 async function startServer() {
   try {
