@@ -14,7 +14,7 @@ const JWT_SECRET = config.JWT_SECRET;
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://127.0.0.1:5173', 'https://e1ce44ec-a95b-47c7-afa8-1d6491e4facc.lovableproject.com'], // Add Lovable's domain
+  origin: ['http://localhost:5173', 'http://127.0.0.1:5173', 'https://e1ce44ec-a95b-47c7-afa8-1d6491e4facc.lovableproject.com'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -24,12 +24,6 @@ app.use(express.json());
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
   next();
-});
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error('Server error:', err);
-  res.status(500).json({ message: '服务器内部错误', error: err.message });
 });
 
 // Authentication middleware
@@ -332,19 +326,25 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// 测试端点 - 无需认证
+// Test endpoint - no authentication required
 app.get('/api/test', (req, res) => {
   console.log('Test endpoint accessed');
   res.json({ message: '服务器运行正常，API可访问' });
 });
 
-// 修复：确保通配符路由定义正确，避免path-to-regexp错误
-app.use((req, res) => {
-  console.log(`Received request for unknown route: ${req.originalUrl}`);
-  res.status(404).json({ message: '路由不存在: ' + req.originalUrl });
+// Error handling middleware (must be defined after all routes)
+app.use((err, req, res, next) => {
+  console.error('Server error:', err);
+  res.status(500).json({ message: '服务器内部错误', error: err.message });
 });
 
-// Update the startServer function to provide more debugging
+// 404 handler for unmatched routes (must be last)
+app.use((req, res) => {
+  console.log(`Request for non-existent route: ${req.originalUrl}`);
+  res.status(404).json({ message: '路由不存在' });
+});
+
+// Start server function with enhanced debugging
 async function startServer() {
   try {
     console.log('Attempting to start server...');
