@@ -11,6 +11,9 @@ export interface Project {
   responses: number;
 }
 
+// Get API URL from environment variable or use default
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
 // API functions
 const fetchProjects = async (): Promise<Project[]> => {
   const token = localStorage.getItem('authToken');
@@ -18,7 +21,7 @@ const fetchProjects = async (): Promise<Project[]> => {
   console.log('Fetching projects with token:', token ? 'token exists' : 'no token');
   
   try {
-    const response = await fetch('http://localhost:3001/api/projects', {
+    const response = await fetch(`${API_URL}/api/projects`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -55,7 +58,7 @@ const deleteProject = async (projectId: string): Promise<void> => {
   const token = localStorage.getItem('authToken');
   
   try {
-    const response = await fetch(`http://localhost:3001/api/projects/${projectId}`, {
+    const response = await fetch(`${API_URL}/api/projects/${projectId}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`

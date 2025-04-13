@@ -15,13 +15,17 @@ interface CreateProjectData {
   description?: string;
 }
 
+// Updated API URL to match what the server is expecting
 const createProject = async (data: CreateProjectData) => {
   const token = localStorage.getItem('authToken');
   
   console.log('Creating project with data:', data);
   
+  // In development environment, the API may be running locally
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+  
   try {
-    const response = await fetch('http://localhost:3001/api/projects', {
+    const response = await fetch(`${API_URL}/api/projects`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
