@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -11,17 +10,21 @@ export interface Project {
   responses: number;
 }
 
-// Get API URL from environment variable or use default
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+// Make sure we're using a valid API URL
+const API_URL = import.meta.env.VITE_API_URL;
 
 // API functions
 const fetchProjects = async (): Promise<Project[]> => {
   const token = localStorage.getItem('authToken');
   
   console.log('Fetching projects with token:', token ? 'token exists' : 'no token');
+  console.log('Using API URL:', API_URL || 'http://localhost:3001');
   
   try {
-    const response = await fetch(`${API_URL}/api/projects`, {
+    // Use the environment variable if available, fallback to localhost only for development
+    const baseUrl = API_URL || 'http://localhost:3001';
+    
+    const response = await fetch(`${baseUrl}/api/projects`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -58,7 +61,10 @@ const deleteProject = async (projectId: string): Promise<void> => {
   const token = localStorage.getItem('authToken');
   
   try {
-    const response = await fetch(`${API_URL}/api/projects/${projectId}`, {
+    // Use the environment variable if available, fallback to localhost only for development
+    const baseUrl = API_URL || 'http://localhost:3001';
+    
+    const response = await fetch(`${baseUrl}/api/projects/${projectId}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`

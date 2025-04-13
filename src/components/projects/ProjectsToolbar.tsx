@@ -25,7 +25,7 @@ const ProjectsToolbar: React.FC<ProjectsToolbarProps> = ({
       >
         {isLoading ? (
           <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 加载中...
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 创建中...
           </>
         ) : (
           <>

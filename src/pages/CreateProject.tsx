@@ -15,17 +15,20 @@ interface CreateProjectData {
   description?: string;
 }
 
-// Updated API URL to match what the server is expecting
+// Make sure we're using a valid API URL
+const API_URL = import.meta.env.VITE_API_URL;
+
 const createProject = async (data: CreateProjectData) => {
   const token = localStorage.getItem('authToken');
   
   console.log('Creating project with data:', data);
-  
-  // In development environment, the API may be running locally
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+  console.log('Using API URL:', API_URL || 'http://localhost:3001');
   
   try {
-    const response = await fetch(`${API_URL}/api/projects`, {
+    // Use the environment variable if available, fallback to localhost only for development
+    const baseUrl = API_URL || 'http://localhost:3001';
+    
+    const response = await fetch(`${baseUrl}/api/projects`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -170,3 +173,4 @@ const CreateProject: React.FC = () => {
 };
 
 export default CreateProject;
+
