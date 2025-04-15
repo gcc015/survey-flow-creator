@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/App';
 
 interface CreateProjectData {
   name: string;
@@ -43,9 +44,13 @@ const API_BASE_URL = getApiUrl();
 const createProject = async (data: CreateProjectData) => {
   const token = localStorage.getItem('authToken');
   
+  if (!token) {
+    throw new Error('未授权，请先登录');
+  }
+  
   console.log('正在创建项目，数据:', data);
   console.log('使用API基础URL:', API_BASE_URL);
-  console.log('认证令牌:', token ? '令牌存在' : '无令牌');
+  console.log('认证令牌:', token ? `${token.substring(0, 10)}...` : '无令牌');
   
   try {
     const response = await fetch(`${API_BASE_URL}/api/projects`, {
@@ -67,6 +72,14 @@ const createProject = async (data: CreateProjectData) => {
       try {
         const errorData = JSON.parse(errorText);
         errorMessage = errorData.message || '创建项目失败';
+        
+        // 处理认证错误
+        if (response.status === 401 || response.status === 403) {
+          // 清除无效的认证状态
+          localStorage.removeItem('isLoggedIn');
+          localStorage.removeItem('authToken');
+          throw new Error('认证已过期，请重新登录');
+        }
       } catch (e) {
         errorMessage = '创建项目失败: 服务器返回了无效的响应';
       }
@@ -99,6 +112,15 @@ const CreateProject: React.FC = () => {
   const [projectName, setProjectName] = useState('');
   const [description, setDescription] = useState('');
   const queryClient = useQueryClient();
+  const { checkAuth, refreshAuth } = useAuth();
+  
+  // 检查用户是否已登录
+  useEffect(() => {
+    if (!checkAuth()) {
+      toast.error('您的登录已过期，请重新登录');
+      navigate('/login');
+    }
+  }, [checkAuth, navigate]);
   
   const createProjectMutation = useMutation({
     mutationFn: createProject,
@@ -108,14 +130,29 @@ const CreateProject: React.FC = () => {
       navigate(`/projects/${data.id}`);
     },
     onError: (error: Error) => {
-      toast.error(error.message || '创建失败，请重试');
       console.error('Create error:', error);
+      
+      // 如果是认证错误，重定向到登录页面
+      if (error.message.includes('认证已过期') || error.message.includes('未授权')) {
+        refreshAuth(); // 刷新认证状态
+        toast.error('登录已过期，请重新登录');
+        navigate('/login');
+      } else {
+        toast.error(error.message || '创建失败，请重试');
+      }
     }
   });
 
   const handleCreateProject = async () => {
     if (!projectName.trim()) {
       toast.error('请输入项目名称');
+      return;
+    }
+    
+    // 再次检查认证状态
+    if (!checkAuth()) {
+      toast.error('您的登录已过期，请重新登录');
+      navigate('/login');
       return;
     }
 

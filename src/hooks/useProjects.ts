@@ -2,6 +2,8 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/App';
 
 export interface Project {
   id: string;
@@ -40,9 +42,13 @@ const API_BASE_URL = getApiUrl();
 const fetchProjects = async (): Promise<Project[]> => {
   const token = localStorage.getItem('authToken');
   
+  if (!token) {
+    throw new Error('未授权，请先登录');
+  }
+  
   console.log('正在获取项目列表...');
   console.log('使用API基础URL:', API_BASE_URL);
-  console.log('认证令牌:', token ? '令牌存在' : '无令牌');
+  console.log('认证令牌:', token ? `${token.substring(0, 10)}...` : '无令牌');
   
   try {
     const response = await fetch(`${API_BASE_URL}/api/projects`, {
@@ -54,6 +60,13 @@ const fetchProjects = async (): Promise<Project[]> => {
     console.log('请求状态:', response.status);
     
     if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        // 清除无效的认证状态
+        localStorage.removeItem('isLoggedIn');
+        localStorage.removeItem('authToken');
+        throw new Error('认证已过期，请重新登录');
+      }
+      
       const errorText = await response.text();
       console.error('错误响应:', errorText);
       throw new Error('获取项目列表失败');
@@ -81,6 +94,10 @@ const fetchProjects = async (): Promise<Project[]> => {
 const deleteProject = async (projectId: string): Promise<void> => {
   const token = localStorage.getItem('authToken');
   
+  if (!token) {
+    throw new Error('未授权，请先登录');
+  }
+  
   try {
     const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}`, {
       method: 'DELETE',
@@ -90,6 +107,13 @@ const deleteProject = async (projectId: string): Promise<void> => {
     });
     
     if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        // 清除无效的认证状态
+        localStorage.removeItem('isLoggedIn');
+        localStorage.removeItem('authToken');
+        throw new Error('认证已过期，请重新登录');
+      }
+      
       const errorText = await response.text();
       let errorMessage;
       
@@ -124,14 +148,18 @@ const deleteProject = async (projectId: string): Promise<void> => {
 export const useProjects = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const { refreshAuth } = useAuth();
   
-  // Fetch projects from API
+  // 获取项目列表
   const { data: projects = [], isLoading, error } = useQuery({
     queryKey: ['projects'],
-    queryFn: fetchProjects
+    queryFn: fetchProjects,
+    retry: 1, // 仅重试一次
+    retryDelay: 1000, // 重试前等待1秒
   });
   
-  // Delete project mutation
+  // 删除项目的mutation
   const deleteProjectMutation = useMutation({
     mutationFn: deleteProject,
     onSuccess: () => {
@@ -139,16 +167,35 @@ export const useProjects = () => {
       toast.success('项目已成功删除');
     },
     onError: (error: Error) => {
-      toast.error(error.message || '删除项目失败');
+      console.error('Delete project error:', error);
+      
+      // 如果是认证错误，重定向到登录页面
+      if (error.message.includes('认证已过期') || error.message.includes('未授权')) {
+        refreshAuth(); // 刷新认证状态
+        toast.error('登录已过期，请重新登录');
+        navigate('/login');
+      } else {
+        toast.error(error.message || '删除项目失败');
+      }
     }
   });
 
   useEffect(() => {
     if (error) {
-      toast.error('获取项目列表失败');
       console.error('Error fetching projects:', error);
+      
+      // 检查是否是认证错误
+      if (error instanceof Error && 
+          (error.message.includes('认证已过期') || 
+           error.message.includes('未授权'))) {
+        refreshAuth(); // 刷新认证状态
+        toast.error('您的登录已过期，请重新登录');
+        navigate('/login');
+      } else {
+        toast.error('获取项目列表失败');
+      }
     }
-  }, [error]);
+  }, [error, navigate, refreshAuth]);
 
   const handleDeleteProject = (e: React.MouseEvent, projectId: string) => {
     e.stopPropagation();

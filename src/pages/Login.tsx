@@ -11,6 +11,31 @@ import { toast } from "sonner";
 import Logo from '@/components/Logo';
 import { useAuth } from '@/App';
 
+// 配置API URL，支持部署环境和本地开发环境
+const getApiUrl = () => {
+  // 首先尝试从环境变量获取API URL
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // 判断当前环境是否是Lovable预览环境
+  const isLovableApp = window.location.hostname.includes('lovable.app');
+  
+  // 如果是Lovable预览环境，使用与当前域名同源的API URL
+  if (isLovableApp) {
+    // 提取当前域名的主机部分
+    const currentHostname = window.location.hostname;
+    // 使用相同主机名的API端点，但是端口为3001
+    return `https://${currentHostname.replace('id-preview--', 'id-api--')}/api`;
+  }
+  
+  // 默认情况下，使用本地开发服务器
+  return 'http://localhost:3001';
+};
+
+// 使用函数获取API URL
+const API_BASE_URL = getApiUrl();
+
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -34,12 +59,11 @@ const Login = () => {
     setError('');
     
     try {
-      // Construct the API URL based on environment
-      // In development, we're using the local server
-      const apiUrl = 'http://localhost:3001/api/auth/login';
+      console.log('Attempting login with:', { email, rememberMe });
+      console.log('API URL:', `${API_BASE_URL}/auth/login`);
       
       // Send a login request to your backend API
-      const response = await fetch(apiUrl, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -47,7 +71,10 @@ const Login = () => {
         body: JSON.stringify({ email, password, rememberMe }),
       });
       
+      console.log('Login response status:', response.status);
+      
       const data = await response.json();
+      console.log('Login response data:', data);
       
       if (!response.ok) {
         throw new Error(data.message || '登录失败');
@@ -57,6 +84,9 @@ const Login = () => {
       localStorage.setItem('isLoggedIn', 'true');
       localStorage.setItem('userEmail', email);
       localStorage.setItem('authToken', data.token);
+      
+      // Log token for debugging
+      console.log('Token stored in localStorage:', data.token);
       
       toast.success('登录成功！');
       navigate('/projects');
