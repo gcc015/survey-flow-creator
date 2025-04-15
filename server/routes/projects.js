@@ -34,8 +34,22 @@ router.post('/', authenticateToken, async (req, res) => {
       return res.status(400).json({ message: '项目名称不能为空' });
     }
     
-    // Generate a unique project ID
-    const projectId = `FS-${Date.now().toString().substring(6)}-${name.substring(0, 5).replace(/\s+/g, '-')}`;
+    // 获取当前服务器中的项目总数
+    const [countResult] = await pool.query('SELECT COUNT(*) as total FROM projects');
+    const totalProjects = countResult[0].total + 1;
+    
+    // 生成新的项目ID格式: p + yyyymmdd + 项目总数+1（补齐到2位数）
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const dateString = `${year}${month}${day}`;
+    
+    // 项目序号，确保是两位数（如果不足两位，前面补0）
+    const projectNumber = String(totalProjects).padStart(2, '0');
+    
+    // 新的项目ID格式
+    const projectId = `p${dateString}${projectNumber}`;
     
     console.log('Generated project ID:', projectId);
     
