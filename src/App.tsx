@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,7 +12,7 @@ import SurveyChat from "./pages/SurveyChat";
 import SurveyResults from "./pages/SurveyResults";
 import NotFound from "./pages/NotFound";
 import AdminUsers from "./pages/AdminUsers";
-import jwt_decode from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 
 const queryClient = new QueryClient();
 
@@ -37,7 +36,7 @@ export const useAuth = () => useContext(AuthContext);
 // 检查令牌是否过期
 const isTokenExpired = (token: string) => {
   try {
-    const decoded: any = jwt_decode(token);
+    const decoded: any = jwtDecode(token);
     // 检查令牌是否已过期，考虑30秒的缓冲时间
     return decoded.exp * 1000 < Date.now() - 30000;
   } catch (error) {
