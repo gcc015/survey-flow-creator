@@ -28,7 +28,7 @@ const getApiUrl = () => {
     // 提取当前域名的主机部分
     const currentHostname = window.location.hostname;
     // 使用相同主机名的API端点，但是端口为3001
-    return `https://${currentHostname.replace('id-preview--', 'id-api--')}/api`;
+    return `https://${currentHostname.replace('id-preview--', 'id-api--')}`;
   }
   
   // 默认情况下，使用本地开发服务器

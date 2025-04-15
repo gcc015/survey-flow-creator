@@ -26,7 +26,7 @@ const getApiUrl = () => {
     // 提取当前域名的主机部分
     const currentHostname = window.location.hostname;
     // 使用相同主机名的API端点，但是端口为3001
-    return `https://${currentHostname.replace('id-preview--', 'id-api--')}/api`;
+    return `https://${currentHostname.replace('id-preview--', 'id-api--')}`;
   }
   
   // 默认情况下，使用本地开发服务器
@@ -60,7 +60,7 @@ const Login = () => {
     
     try {
       console.log('Attempting login with:', { email, rememberMe });
-      console.log('API URL:', `${API_BASE_URL}/auth/login`);
+      console.log('API URL:', `${API_BASE_URL}/api/auth/login`);
       
       // Send a login request to your backend API
       const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
