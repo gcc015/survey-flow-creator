@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -10,47 +11,56 @@ export interface Project {
   responses: number;
 }
 
-// Make sure we're using a valid API URL
-const API_URL = import.meta.env.VITE_API_URL;
+// 配置API URL，支持部署环境和本地开发环境
+const getApiUrl = () => {
+  // 首先尝试从环境变量获取API URL
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // 判断当前环境是否是Lovable预览环境
+  const isLovableApp = window.location.hostname.includes('lovable.app');
+  
+  // 如果是Lovable预览环境，使用与当前域名同源的API URL
+  if (isLovableApp) {
+    // 提取当前域名的主机部分
+    const currentHostname = window.location.hostname;
+    // 使用相同主机名的API端点，但是端口为3001
+    return `https://${currentHostname.replace('id-preview--', 'id-api--')}/api`;
+  }
+  
+  // 默认情况下，使用本地开发服务器
+  return 'http://localhost:3001';
+};
 
-// API functions
+// 使用函数获取API URL
+const API_BASE_URL = getApiUrl();
+
+// API 函数
 const fetchProjects = async (): Promise<Project[]> => {
   const token = localStorage.getItem('authToken');
   
-  // Enhanced logging for debugging
-  console.group('FetchProjects API Call');
-  console.log('Environment Variables:');
-  console.log('Raw VITE_API_URL:', import.meta.env.VITE_API_URL);
-  console.log('Processed API_URL:', API_URL);
-  console.log('Using base URL:', API_URL || 'http://localhost:3001');
-  console.log('Auth Token:', token ? 'Token exists' : 'No token');
-  console.groupEnd();
-  
-  console.log('Fetching projects with token:', token ? 'token exists' : 'no token');
-  console.log('Raw VITE_API_URL:', import.meta.env.VITE_API_URL);
-  console.log('Processed API_URL:', API_URL);
-  console.log('Using base URL:', API_URL || 'http://localhost:3001');
+  console.log('正在获取项目列表...');
+  console.log('使用API基础URL:', API_BASE_URL);
+  console.log('认证令牌:', token ? '令牌存在' : '无令牌');
   
   try {
-    // Use the environment variable if available, fallback to localhost only for development
-    const baseUrl = API_URL || 'http://localhost:3001';
-    
-    const response = await fetch(`${baseUrl}/api/projects`, {
+    const response = await fetch(`${API_BASE_URL}/api/projects`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
     });
     
-    console.log('Response status:', response.status);
+    console.log('请求状态:', response.status);
     
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Error response:', errorText);
-      throw new Error('Failed to fetch projects');
+      console.error('错误响应:', errorText);
+      throw new Error('获取项目列表失败');
     }
     
     const responseText = await response.text();
-    console.log('Response text length:', responseText.length);
+    console.log('响应文本长度:', responseText.length);
     
     if (!responseText.trim()) {
       return [];
@@ -59,11 +69,11 @@ const fetchProjects = async (): Promise<Project[]> => {
     try {
       return JSON.parse(responseText);
     } catch (e) {
-      console.error('Error parsing JSON:', e);
-      throw new Error('Invalid response format from server');
+      console.error('解析JSON错误:', e);
+      throw new Error('服务器返回了无效的数据格式');
     }
   } catch (error) {
-    console.error('Fetch projects error:', error);
+    console.error('获取项目列表错误:', error);
     throw error;
   }
 };
@@ -72,10 +82,7 @@ const deleteProject = async (projectId: string): Promise<void> => {
   const token = localStorage.getItem('authToken');
   
   try {
-    // Use the environment variable if available, fallback to localhost only for development
-    const baseUrl = API_URL || 'http://localhost:3001';
-    
-    const response = await fetch(`${baseUrl}/api/projects/${projectId}`, {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`
@@ -88,9 +95,9 @@ const deleteProject = async (projectId: string): Promise<void> => {
       
       try {
         const errorData = JSON.parse(errorText);
-        errorMessage = errorData.message || 'Failed to delete project';
+        errorMessage = errorData.message || '删除项目失败';
       } catch (e) {
-        errorMessage = 'Failed to delete project: Invalid server response';
+        errorMessage = '删除项目失败: 服务器返回了无效的响应';
       }
       
       throw new Error(errorMessage);
@@ -105,11 +112,11 @@ const deleteProject = async (projectId: string): Promise<void> => {
     try {
       return JSON.parse(responseText);
     } catch (e) {
-      console.error('Error parsing JSON:', e);
+      console.error('解析JSON错误:', e);
       return;
     }
   } catch (error) {
-    console.error('Delete project error:', error);
+    console.error('删除项目错误:', error);
     throw error;
   }
 };

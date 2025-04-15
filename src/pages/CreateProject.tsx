@@ -15,27 +15,40 @@ interface CreateProjectData {
   description?: string;
 }
 
-// Ensure we're using a valid API URL
-const API_URL = import.meta.env.VITE_API_URL;
+// 配置API URL，支持部署环境和本地开发环境
+const getApiUrl = () => {
+  // 首先尝试从环境变量获取API URL
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // 判断当前环境是否是Lovable预览环境
+  const isLovableApp = window.location.hostname.includes('lovable.app');
+  
+  // 如果是Lovable预览环境，使用与当前域名同源的API URL
+  if (isLovableApp) {
+    // 提取当前域名的主机部分
+    const currentHostname = window.location.hostname;
+    // 使用相同主机名的API端点，但是端口为3001
+    return `https://${currentHostname.replace('id-preview--', 'id-api--')}/api`;
+  }
+  
+  // 默认情况下，使用本地开发服务器
+  return 'http://localhost:3001';
+};
+
+// 使用函数获取API URL
+const API_BASE_URL = getApiUrl();
 
 const createProject = async (data: CreateProjectData) => {
   const token = localStorage.getItem('authToken');
   
-  // Enhanced logging for debugging
-  console.group('CreateProject API Call');
-  console.log('Creating project with data:', data);
-  console.log('Environment Variables:');
-  console.log('Raw VITE_API_URL:', import.meta.env.VITE_API_URL);
-  console.log('Processed API_URL:', API_URL);
-  console.log('Using base URL:', API_URL || 'http://localhost:3001');
-  console.log('Auth Token:', token ? 'Token exists' : 'No token');
-  console.groupEnd();
+  console.log('正在创建项目，数据:', data);
+  console.log('使用API基础URL:', API_BASE_URL);
+  console.log('认证令牌:', token ? '令牌存在' : '无令牌');
   
   try {
-    // Use the environment variable if available, fallback to localhost only for development
-    const baseUrl = API_URL || 'http://localhost:3001';
-    
-    const response = await fetch(`${baseUrl}/api/projects`, {
+    const response = await fetch(`${API_BASE_URL}/api/projects`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -44,11 +57,11 @@ const createProject = async (data: CreateProjectData) => {
       body: JSON.stringify(data)
     });
     
-    console.log('Response status:', response.status);
+    console.log('请求状态:', response.status);
     
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Error response:', errorText);
+      console.error('错误响应:', errorText);
       
       let errorMessage;
       try {
@@ -62,9 +75,9 @@ const createProject = async (data: CreateProjectData) => {
     }
     
     const responseText = await response.text();
-    console.log('Response text:', responseText);
+    console.log('响应文本:', responseText);
     
-    // Handle empty response
+    // 处理空响应
     if (!responseText.trim()) {
       return { message: '项目创建成功！', id: Date.now().toString() };
     }
@@ -72,11 +85,11 @@ const createProject = async (data: CreateProjectData) => {
     try {
       return JSON.parse(responseText);
     } catch (e) {
-      console.error('Error parsing JSON:', e, 'Response was:', responseText);
+      console.error('解析JSON错误:', e, '响应文本:', responseText);
       return { message: '项目创建成功，但返回数据格式有误', id: Date.now().toString() };
     }
   } catch (error) {
-    console.error('Create project error:', error);
+    console.error('创建项目错误:', error);
     throw error;
   }
 };

@@ -9,12 +9,28 @@ console.log('当前工作目录 (CWD):', rootDir);
 
 // 检查 .env 文件是否存在
 const envPath = path.resolve(rootDir, '.env');
-const envExists = fs.existsSync(envPath);
-
-// 列出目录中的文件以帮助诊断问题
 console.log('正在检查 .env 文件:', envPath);
+
+// 尝试查找和加载 .env 文件
+let envExists = fs.existsSync(envPath);
 console.log('.env 文件是否存在:', envExists ? '是' : '否');
 
+// 如果当前目录没有 .env 文件，尝试向上查找一级 
+if (!envExists) {
+  const parentDirEnvPath = path.resolve(rootDir, '..', '.env');
+  console.log('尝试在上级目录查找 .env 文件:', parentDirEnvPath);
+  
+  if (fs.existsSync(parentDirEnvPath)) {
+    console.log('在上级目录找到 .env 文件');
+    dotenv.config({ path: parentDirEnvPath });
+    envExists = true;
+  }
+} else {
+  // 加载找到的 .env 文件
+  dotenv.config({ path: envPath });
+}
+
+// 如果仍未找到 .env 文件，显示目录列表以帮助诊断
 if (!envExists) {
   console.log('根目录下的文件列表:');
   try {
@@ -27,8 +43,13 @@ if (!envExists) {
   }
 }
 
-// 加载环境变量（即使没有找到 .env 文件也不会报错）
-dotenv.config();
+// 打印环境变量列表（仅用于调试）
+console.log('\n环境变量检查:');
+console.log('DB_HOST:', process.env.DB_HOST || '未设置');
+console.log('DB_USER:', process.env.DB_USER || '未设置');
+console.log('DB_PASSWORD:', process.env.DB_PASSWORD ? '[已设置]' : '未设置');
+console.log('DB_DATABASE:', process.env.DB_DATABASE || '未设置');
+console.log('JWT_SECRET:', process.env.JWT_SECRET ? '[已设置]' : '未设置');
 
 // 默认配置，提供回退值
 const config = {
