@@ -3,8 +3,8 @@ import cors from 'cors';
 
 // 允许的源列表
 const allowedOrigins = [
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
+  'http://localhost:8080',
+  'http://127.0.0.1:8080',
   'https://e1ce44ec-a95b-47c7-afa8-1d6491e4facc.lovableproject.com'
 ];
 
